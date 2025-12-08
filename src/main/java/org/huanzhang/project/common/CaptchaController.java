@@ -2,7 +2,6 @@ package org.huanzhang.project.common;
 
 import com.google.code.kaptcha.Producer;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletResponse;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.utils.sign.Base64;
@@ -10,7 +9,6 @@ import org.huanzhang.common.utils.uuid.IdUtils;
 import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.project.system.service.ISysConfigService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,21 +33,21 @@ public class CaptchaController {
     @Resource(name = "captchaProducerMath")
     private Producer captchaProducerMath;
 
-    @Autowired
+    @Resource
     private RedisCache redisCache;
 
     // 验证码类型
     @Value("${ruoyi.captchaType}")
     private String captchaType;
 
-    @Autowired
+    @Resource
     private ISysConfigService configService;
 
     /**
      * 生成验证码
      */
     @GetMapping("/captchaImage")
-    public AjaxResult getCode(HttpServletResponse response) throws IOException {
+    public AjaxResult getCode() throws IOException {
         AjaxResult ajax = AjaxResult.success();
         boolean captchaEnabled = configService.selectCaptchaEnabled();
         ajax.put("captchaEnabled", captchaEnabled);
@@ -60,7 +59,7 @@ public class CaptchaController {
         String uuid = IdUtils.simpleUUID();
         String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
 
-        String capStr = null, code = null;
+        String capStr, code = null;
         BufferedImage image = null;
 
         // 生成验证码
@@ -72,6 +71,10 @@ public class CaptchaController {
         } else if ("char".equals(captchaType)) {
             capStr = code = captchaProducer.createText();
             image = captchaProducer.createImage(capStr);
+        }
+
+        if (Objects.isNull(image)) {
+            return ajax;
         }
 
         redisCache.setCacheObject(verifyKey, code, Constants.CAPTCHA_EXPIRATION, TimeUnit.MINUTES);

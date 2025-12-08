@@ -1,40 +1,52 @@
 package org.huanzhang.framework.interceptor;
 
-import com.alibaba.fastjson2.JSON;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.huanzhang.common.utils.ServletUtils;
 import org.huanzhang.framework.interceptor.annotation.RepeatSubmit;
-import org.huanzhang.framework.web.domain.AjaxResult;
-import org.springframework.stereotype.Component;
+import org.huanzhang.framework.web.domain.R;
+import org.huanzhang.framework.webflux.utils.WebFluxUtils;
+import org.springframework.core.annotation.AnnotatedMethod;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.reactive.HandlerMapping;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Method;
+import java.util.Objects;
 
 /**
  * 防止重复提交拦截器
  *
  * @author ruoyi
  */
-@Component
-public abstract class RepeatSubmitInterceptor implements HandlerInterceptor {
+public abstract class RepeatSubmitInterceptor implements WebFilter {
+
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (handler instanceof HandlerMethod handlerMethod) {
-            Method method = handlerMethod.getMethod();
-            RepeatSubmit annotation = method.getAnnotation(RepeatSubmit.class);
-            if (annotation != null) {
-                if (this.isRepeatSubmit(request, annotation)) {
-                    AjaxResult ajaxResult = AjaxResult.error(annotation.message());
-                    ServletUtils.renderString(response, JSON.toJSONString(ajaxResult));
-                    return false;
-                }
-            }
-            return true;
-        } else {
-            return true;
-        }
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        ServerHttpRequest request = exchange.getRequest();
+        ServerHttpResponse response = exchange.getResponse();
+
+        // 获取HandlerMethod（需要配合RequestMappingHandlerMapping）
+        return Mono.justOrEmpty(exchange.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE))
+                .switchIfEmpty(chain.filter(exchange))
+                .cast(HandlerMethod.class)
+                .map(AnnotatedMethod::getMethod)
+                .flatMap(method -> {
+                    RepeatSubmit annotation = method.getAnnotation(RepeatSubmit.class);
+                    if (Objects.nonNull(annotation)) {
+                        return isRepeatSubmit(request, annotation)
+                                .flatMap(isRepeat -> {
+                                    if (isRepeat) {
+                                        // 返回重复提交错误响应
+                                        return WebFluxUtils.writeBodyAsString(response, R.fail(annotation.message()));
+                                    } else {
+                                        return chain.filter(exchange);
+                                    }
+                                });
+                    }
+                    return chain.filter(exchange);
+                });
     }
 
     /**
@@ -43,7 +55,7 @@ public abstract class RepeatSubmitInterceptor implements HandlerInterceptor {
      * @param request    请求信息
      * @param annotation 防重复注解参数
      * @return 结果
-     * @throws Exception
      */
-    public abstract boolean isRepeatSubmit(HttpServletRequest request, RepeatSubmit annotation);
+    public abstract Mono<Boolean> isRepeatSubmit(ServerHttpRequest request, RepeatSubmit annotation);
+
 }

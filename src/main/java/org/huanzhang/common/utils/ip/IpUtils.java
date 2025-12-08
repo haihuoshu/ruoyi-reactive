@@ -3,15 +3,19 @@ package org.huanzhang.common.utils.ip;
 import jakarta.servlet.http.HttpServletRequest;
 import org.huanzhang.common.utils.ServletUtils;
 import org.huanzhang.common.utils.StringUtils;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Optional;
 
 /**
  * 获取IP方法
  *
  * @author ruoyi
  */
+@SuppressWarnings({"SizeReplaceableByIsEmpty", "RegExpRedundantEscape", "SwitchStatementWithTooFewBranches", "CatchMayIgnoreException"})
 public class IpUtils {
     public final static String REGX_0_255 = "(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]\\d|\\d)";
     // 匹配 ip
@@ -59,6 +63,41 @@ public class IpUtils {
 
         return "0:0:0:0:0:0:0:1".equals(ip) ? "127.0.0.1" : getMultistageReverseProxyIp(ip);
     }
+
+    /**
+     * 获取客户端IP
+     *
+     * @param request 请求对象
+     * @return IP地址
+     */
+    public static String getIpAddr(ServerHttpRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        String ip = request.getHeaders().getFirst("x-forwarded-for");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeaders().getFirst("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeaders().getFirst("X-Forwarded-For");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeaders().getFirst("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeaders().getFirst("X-Real-IP");
+        }
+
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = Optional.ofNullable(request.getRemoteAddress())
+                    .map(InetSocketAddress::getAddress)
+                    .map(InetAddress::getHostAddress)
+                    .orElse("");
+        }
+
+        return "0:0:0:0:0:0:0:1".equals(ip) ? "127.0.0.1" : getMultistageReverseProxyIp(ip);
+    }
+
 
     /**
      * 检查是否为内部IP地址

@@ -1,17 +1,16 @@
 package org.huanzhang.framework.interceptor.impl;
 
-import com.alibaba.fastjson2.JSON;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
 import org.huanzhang.common.constant.CacheConstants;
-import org.huanzhang.common.filter.RepeatedlyRequestWrapper;
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.utils.http.HttpHelper;
 import org.huanzhang.framework.interceptor.RepeatSubmitInterceptor;
 import org.huanzhang.framework.interceptor.annotation.RepeatSubmit;
 import org.huanzhang.framework.redis.RedisCache;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.huanzhang.framework.webflux.utils.WebFluxUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 public class SameUrlDataInterceptor extends RepeatSubmitInterceptor {
+
     public final String REPEAT_PARAMS = "repeatParams";
 
     public final String REPEAT_TIME = "repeatTime";
@@ -33,48 +33,48 @@ public class SameUrlDataInterceptor extends RepeatSubmitInterceptor {
     @Value("${token.header}")
     private String header;
 
-    @Autowired
+    @Resource
     private RedisCache redisCache;
 
     @SuppressWarnings("unchecked")
     @Override
-    public boolean isRepeatSubmit(HttpServletRequest request, RepeatSubmit annotation) {
-        String nowParams = "";
-        if (request instanceof RepeatedlyRequestWrapper repeatedlyRequest) {
-            nowParams = HttpHelper.getBodyString(repeatedlyRequest);
-        }
+    public Mono<Boolean> isRepeatSubmit(ServerHttpRequest request, RepeatSubmit annotation) {
+        return WebFluxUtils.readBodyAsString(request)
+                .map(nowParams -> {
 
-        // body参数为空，获取Parameter的数据
-        if (StringUtils.isEmpty(nowParams)) {
-            nowParams = JSON.toJSONString(request.getParameterMap());
-        }
-        Map<String, Object> nowDataMap = new HashMap<String, Object>();
-        nowDataMap.put(REPEAT_PARAMS, nowParams);
-        nowDataMap.put(REPEAT_TIME, System.currentTimeMillis());
+                    // body参数为空，获取Parameter的数据
+                    if (StringUtils.isEmpty(nowParams)) {
+                        nowParams = WebFluxUtils.readParamsAsString(request);
+                    }
 
-        // 请求地址（作为存放cache的key值）
-        String url = request.getRequestURI();
+                    Map<String, Object> nowDataMap = new HashMap<>();
+                    nowDataMap.put(REPEAT_PARAMS, nowParams);
+                    nowDataMap.put(REPEAT_TIME, System.currentTimeMillis());
 
-        // 唯一值（没有消息头则使用请求地址）
-        String submitKey = StringUtils.trimToEmpty(request.getHeader(header));
+                    // 请求地址（作为存放cache的key值）
+                    String url = request.getURI().getPath();
 
-        // 唯一标识（指定key + url + 消息头）
-        String cacheRepeatKey = CacheConstants.REPEAT_SUBMIT_KEY + url + submitKey;
+                    // 唯一值（没有消息头则使用请求地址）
+                    String submitKey = StringUtils.trimToEmpty(request.getHeaders().getFirst(header));
 
-        Object sessionObj = redisCache.getCacheObject(cacheRepeatKey);
-        if (sessionObj != null) {
-            Map<String, Object> sessionMap = (Map<String, Object>) sessionObj;
-            if (sessionMap.containsKey(url)) {
-                Map<String, Object> preDataMap = (Map<String, Object>) sessionMap.get(url);
-                if (compareParams(nowDataMap, preDataMap) && compareTime(nowDataMap, preDataMap, annotation.interval())) {
-                    return true;
-                }
-            }
-        }
-        Map<String, Object> cacheMap = new HashMap<String, Object>();
-        cacheMap.put(url, nowDataMap);
-        redisCache.setCacheObject(cacheRepeatKey, cacheMap, annotation.interval(), TimeUnit.MILLISECONDS);
-        return false;
+                    // 唯一标识（指定key + url + 消息头）
+                    String cacheRepeatKey = CacheConstants.REPEAT_SUBMIT_KEY + url + submitKey;
+
+                    Object sessionObj = redisCache.getCacheObject(cacheRepeatKey);
+                    if (sessionObj != null) {
+                        Map<String, Object> sessionMap = (Map<String, Object>) sessionObj;
+                        if (sessionMap.containsKey(url)) {
+                            Map<String, Object> preDataMap = (Map<String, Object>) sessionMap.get(url);
+                            if (compareParams(nowDataMap, preDataMap) && compareTime(nowDataMap, preDataMap, annotation.interval())) {
+                                return true;
+                            }
+                        }
+                    }
+                    Map<String, Object> cacheMap = new HashMap<>();
+                    cacheMap.put(url, nowDataMap);
+                    redisCache.setCacheObject(cacheRepeatKey, cacheMap, annotation.interval(), TimeUnit.MILLISECONDS);
+                    return false;
+                });
     }
 
     /**
