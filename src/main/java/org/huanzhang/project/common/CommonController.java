@@ -1,10 +1,14 @@
 package org.huanzhang.project.common;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.huanzhang.common.constant.Constants;
+import org.huanzhang.common.utils.StringUtils;
+import org.huanzhang.common.utils.file.FileUploadUtils;
+import org.huanzhang.common.utils.file.FileUtils;
+import org.huanzhang.framework.config.RuoYiConfig;
+import org.huanzhang.framework.config.ServerConfig;
+import org.huanzhang.framework.web.domain.AjaxResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,13 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.huanzhang.common.constant.Constants;
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.utils.file.FileUploadUtils;
-import org.huanzhang.common.utils.file.FileUtils;
-import org.huanzhang.framework.config.RuoYiConfig;
-import org.huanzhang.framework.config.ServerConfig;
-import org.huanzhang.framework.web.domain.AjaxResult;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 通用请求处理

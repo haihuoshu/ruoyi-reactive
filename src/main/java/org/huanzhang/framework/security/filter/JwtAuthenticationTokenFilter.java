@@ -1,21 +1,21 @@
 package org.huanzhang.framework.security.filter;
 
-import java.io.IOException;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.huanzhang.common.utils.SecurityUtils;
+import org.huanzhang.common.utils.StringUtils;
+import org.huanzhang.framework.security.LoginUser;
+import org.huanzhang.framework.security.service.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.huanzhang.common.utils.SecurityUtils;
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.framework.security.LoginUser;
-import org.huanzhang.framework.security.service.TokenService;
+
+import java.io.IOException;
 
 /**
  * token过滤器 验证token有效性

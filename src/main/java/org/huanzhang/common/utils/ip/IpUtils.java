@@ -1,11 +1,11 @@
 package org.huanzhang.common.utils.ip;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import javax.servlet.http.HttpServletRequest;
-
+import jakarta.servlet.http.HttpServletRequest;
 import org.huanzhang.common.utils.ServletUtils;
 import org.huanzhang.common.utils.StringUtils;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * 获取IP方法
@@ -220,7 +220,7 @@ public class IpUtils {
         if (ip != null && ip.indexOf(",") > 0) {
             final String[] ips = ip.trim().split(",");
             for (String subIp : ips) {
-                if (false == isUnknown(subIp)) {
+                if (!isUnknown(subIp)) {
                     ip = subIp;
                     break;
                 }

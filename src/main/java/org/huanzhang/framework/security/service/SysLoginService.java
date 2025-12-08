@@ -1,22 +1,11 @@
 package org.huanzhang.framework.security.service;
 
-import javax.annotation.Resource;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Component;
+import jakarta.annotation.Resource;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.constant.UserConstants;
 import org.huanzhang.common.exception.ServiceException;
-import org.huanzhang.common.exception.user.BlackListException;
-import org.huanzhang.common.exception.user.CaptchaException;
-import org.huanzhang.common.exception.user.CaptchaExpireException;
-import org.huanzhang.common.exception.user.UserNotExistsException;
-import org.huanzhang.common.exception.user.UserPasswordNotMatchException;
+import org.huanzhang.common.exception.user.*;
 import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.MessageUtils;
 import org.huanzhang.common.utils.StringUtils;
@@ -29,6 +18,12 @@ import org.huanzhang.framework.security.context.AuthenticationContextHolder;
 import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.service.ISysConfigService;
 import org.huanzhang.project.system.service.ISysUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
 
 /**
  * 登录校验方法

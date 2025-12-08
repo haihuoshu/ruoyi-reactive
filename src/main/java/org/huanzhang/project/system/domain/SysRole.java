@@ -1,15 +1,15 @@
 package org.huanzhang.project.system.domain;
 
-import java.util.Set;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.huanzhang.framework.aspectj.lang.annotation.Excel;
 import org.huanzhang.framework.aspectj.lang.annotation.Excel.ColumnType;
 import org.huanzhang.framework.web.domain.BaseEntity;
+
+import java.util.Set;
 
 /**
  * 角色表 sys_role

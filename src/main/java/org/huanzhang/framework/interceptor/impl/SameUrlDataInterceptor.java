@@ -1,14 +1,7 @@
 package org.huanzhang.framework.interceptor.impl;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import javax.servlet.http.HttpServletRequest;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import com.alibaba.fastjson2.JSON;
+import jakarta.servlet.http.HttpServletRequest;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.filter.RepeatedlyRequestWrapper;
 import org.huanzhang.common.utils.StringUtils;
@@ -16,6 +9,13 @@ import org.huanzhang.common.utils.http.HttpHelper;
 import org.huanzhang.framework.interceptor.RepeatSubmitInterceptor;
 import org.huanzhang.framework.interceptor.annotation.RepeatSubmit;
 import org.huanzhang.framework.redis.RedisCache;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 判断请求url和数据是否和上一次相同，
@@ -40,8 +40,7 @@ public class SameUrlDataInterceptor extends RepeatSubmitInterceptor {
     @Override
     public boolean isRepeatSubmit(HttpServletRequest request, RepeatSubmit annotation) {
         String nowParams = "";
-        if (request instanceof RepeatedlyRequestWrapper) {
-            RepeatedlyRequestWrapper repeatedlyRequest = (RepeatedlyRequestWrapper) request;
+        if (request instanceof RepeatedlyRequestWrapper repeatedlyRequest) {
             nowParams = HttpHelper.getBodyString(repeatedlyRequest);
         }
 
@@ -93,9 +92,6 @@ public class SameUrlDataInterceptor extends RepeatSubmitInterceptor {
     private boolean compareTime(Map<String, Object> nowMap, Map<String, Object> preMap, int interval) {
         long time1 = (Long) nowMap.get(REPEAT_TIME);
         long time2 = (Long) preMap.get(REPEAT_TIME);
-        if ((time1 - time2) < interval) {
-            return true;
-        }
-        return false;
+        return (time1 - time2) < interval;
     }
 }

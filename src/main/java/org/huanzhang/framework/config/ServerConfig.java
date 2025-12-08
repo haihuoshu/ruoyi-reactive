@@ -1,9 +1,8 @@
 package org.huanzhang.framework.config;
 
-import javax.servlet.http.HttpServletRequest;
-
-import org.springframework.stereotype.Component;
+import jakarta.servlet.http.HttpServletRequest;
 import org.huanzhang.common.utils.ServletUtils;
+import org.springframework.stereotype.Component;
 
 /**
  * 服务相关配置

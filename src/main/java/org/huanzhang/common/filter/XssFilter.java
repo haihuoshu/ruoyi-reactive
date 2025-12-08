@@ -1,19 +1,14 @@
 package org.huanzhang.common.filter;
 
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import org.huanzhang.common.enums.HttpMethod;
+import org.huanzhang.common.utils.StringUtils;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.enums.HttpMethod;
 
 /**
  * 防止XSS攻击的过滤器
@@ -27,13 +22,11 @@ public class XssFilter implements Filter {
     public List<String> excludes = new ArrayList<>();
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
         String tempExcludes = filterConfig.getInitParameter("excludes");
         if (StringUtils.isNotEmpty(tempExcludes)) {
             String[] urls = tempExcludes.split(",");
-            for (String url : urls) {
-                excludes.add(url);
-            }
+            excludes.addAll(Arrays.asList(urls));
         }
     }
 
@@ -41,8 +34,7 @@ public class XssFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
-        HttpServletResponse resp = (HttpServletResponse) response;
-        if (handleExcludeURL(req, resp)) {
+        if (handleExcludeURL(req)) {
             chain.doFilter(request, response);
             return;
         }
@@ -50,7 +42,7 @@ public class XssFilter implements Filter {
         chain.doFilter(xssRequest, response);
     }
 
-    private boolean handleExcludeURL(HttpServletRequest request, HttpServletResponse response) {
+    private boolean handleExcludeURL(HttpServletRequest request) {
         String url = request.getServletPath();
         String method = request.getMethod();
         // GET DELETE 不过滤

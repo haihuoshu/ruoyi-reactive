@@ -1,17 +1,17 @@
 package org.huanzhang.framework.config;
 
-import java.util.HashMap;
-import java.util.Map;
-import javax.servlet.DispatcherType;
-
+import jakarta.servlet.DispatcherType;
+import org.huanzhang.common.filter.RepeatableFilter;
+import org.huanzhang.common.filter.XssFilter;
+import org.huanzhang.common.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.huanzhang.common.filter.RepeatableFilter;
-import org.huanzhang.common.filter.XssFilter;
-import org.huanzhang.common.utils.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Filter配置
