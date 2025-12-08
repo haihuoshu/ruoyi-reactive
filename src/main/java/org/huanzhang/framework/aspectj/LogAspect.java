@@ -1,23 +1,14 @@
 package org.huanzhang.framework.aspectj;
 
-import java.util.Collection;
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.alibaba.fastjson2.JSON;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.ArrayUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.NamedThreadLocal;
-import org.springframework.stereotype.Component;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.multipart.MultipartFile;
-import com.alibaba.fastjson2.JSON;
 import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.enums.HttpMethod;
 import org.huanzhang.common.filter.PropertyPreExcludeFilter;
@@ -33,6 +24,15 @@ import org.huanzhang.framework.manager.factory.AsyncFactory;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.project.monitor.domain.SysOperLog;
 import org.huanzhang.project.system.domain.SysUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.NamedThreadLocal;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * 操作日志记录处理
@@ -175,12 +175,12 @@ public class LogAspect {
      */
     private String argsArrayToString(Object[] paramsArray, String[] excludeParamNames) {
         String params = "";
-        if (paramsArray != null && paramsArray.length > 0) {
+        if (paramsArray != null) {
             for (Object o : paramsArray) {
                 if (StringUtils.isNotNull(o) && !isFilterObject(o)) {
                     try {
                         String jsonObj = JSON.toJSONString(o, excludePropertyPreFilter(excludeParamNames));
-                        params += jsonObj.toString() + " ";
+                        params += jsonObj + " ";
                     } catch (Exception e) {
                     }
                 }

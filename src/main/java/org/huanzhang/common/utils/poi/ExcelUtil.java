@@ -1,76 +1,17 @@
 package org.huanzhang.common.utils.poi;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.poi.hssf.usermodel.HSSFClientAnchor;
-import org.apache.poi.hssf.usermodel.HSSFPicture;
-import org.apache.poi.hssf.usermodel.HSSFPictureData;
-import org.apache.poi.hssf.usermodel.HSSFShape;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ooxml.POIXMLDocumentPart;
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.ClientAnchor;
-import org.apache.poi.ss.usermodel.DataFormat;
-import org.apache.poi.ss.usermodel.DataValidation;
-import org.apache.poi.ss.usermodel.DataValidationConstraint;
-import org.apache.poi.ss.usermodel.DataValidationHelper;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.Drawing;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Name;
-import org.apache.poi.ss.usermodel.PictureData;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
-import org.apache.poi.xssf.usermodel.XSSFDataValidation;
-import org.apache.poi.xssf.usermodel.XSSFDrawing;
-import org.apache.poi.xssf.usermodel.XSSFPicture;
-import org.apache.poi.xssf.usermodel.XSSFShape;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openxmlformats.schemas.drawingml.x2006.spreadsheetDrawing.CTMarker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.poi.xssf.usermodel.*;
 import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.exception.UtilException;
 import org.huanzhang.common.utils.DateUtils;
@@ -86,6 +27,20 @@ import org.huanzhang.framework.aspectj.lang.annotation.Excel.Type;
 import org.huanzhang.framework.aspectj.lang.annotation.Excels;
 import org.huanzhang.framework.config.RuoYiConfig;
 import org.huanzhang.framework.web.domain.AjaxResult;
+import org.openxmlformats.schemas.drawingml.x2006.spreadsheetDrawing.CTMarker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Excel相关处理
@@ -164,12 +119,12 @@ public class ExcelUtil<T> {
     /**
      * 合并后最后行数
      */
-    private int subMergedLastRowNum = 0;
+    private final int subMergedLastRowNum = 0;
 
     /**
      * 合并后开始行数
      */
-    private int subMergedFirstRowNum = 1;
+    private final int subMergedFirstRowNum = 1;
 
     /**
      * 对象的子列表方法
@@ -184,7 +139,7 @@ public class ExcelUtil<T> {
     /**
      * 统计列表
      */
-    private Map<Integer, Double> statistics = new HashMap<Integer, Double>();
+    private final Map<Integer, Double> statistics = new HashMap<Integer, Double>();
 
     /**
      * 数字格式
@@ -635,7 +590,7 @@ public class ExcelUtil<T> {
 
         for (int i = startNo; i < endNo; i++) {
             row = sheet.createRow(currentRowNum);
-            T vo = (T) list.get(i);
+            T vo = list.get(i);
             int column = 0;
             int maxSubListSize = getCurrentMaxSubListSize(vo);
             for (Object[] os : fields) {
@@ -1178,7 +1133,7 @@ public class ExcelUtil<T> {
     public String dataFormatHandlerAdapter(Object value, Excel excel, Cell cell) {
         try {
             Object instance = excel.handler().newInstance();
-            Method formatMethod = excel.handler().getMethod("format", new Class[]{Object.class, String[].class, Cell.class, Workbook.class});
+            Method formatMethod = excel.handler().getMethod("format", Object.class, String[].class, Cell.class, Workbook.class);
             value = formatMethod.invoke(instance, value, excel.args(), cell, this.wb);
         } catch (Exception e) {
             log.error("不能格式化数据 " + excel.handler(), e.getMessage());
@@ -1472,8 +1427,7 @@ public class ExcelUtil<T> {
         List<HSSFPictureData> pictures = workbook.getAllPictures();
         if (!pictures.isEmpty() && sheet.getDrawingPatriarch() != null) {
             for (HSSFShape shape : sheet.getDrawingPatriarch().getChildren()) {
-                if (shape instanceof HSSFPicture) {
-                    HSSFPicture pic = (HSSFPicture) shape;
+                if (shape instanceof HSSFPicture pic) {
                     HSSFClientAnchor anchor = (HSSFClientAnchor) pic.getAnchor();
                     String picIndex = anchor.getRow1() + "_" + anchor.getCol1();
                     sheetIndexPicMap.computeIfAbsent(picIndex, k -> new ArrayList<>()).add(pic.getPictureData());
@@ -1493,11 +1447,9 @@ public class ExcelUtil<T> {
     public static Map<String, List<PictureData>> getSheetPictures07(XSSFSheet sheet, XSSFWorkbook workbook) {
         Map<String, List<PictureData>> sheetIndexPicMap = new HashMap<>();
         for (POIXMLDocumentPart dr : sheet.getRelations()) {
-            if (dr instanceof XSSFDrawing) {
-                XSSFDrawing drawing = (XSSFDrawing) dr;
+            if (dr instanceof XSSFDrawing drawing) {
                 for (XSSFShape shape : drawing.getShapes()) {
-                    if (shape instanceof XSSFPicture) {
-                        XSSFPicture pic = (XSSFPicture) shape;
+                    if (shape instanceof XSSFPicture pic) {
                         XSSFClientAnchor anchor = pic.getPreferredSize();
                         CTMarker ctMarker = anchor.getFrom();
                         String picIndex = ctMarker.getRow() + "_" + ctMarker.getCol();
@@ -1553,7 +1505,7 @@ public class ExcelUtil<T> {
     public Collection<?> getListCellValue(Object obj) {
         Object value;
         try {
-            value = subMethod.invoke(obj, new Object[]{});
+            value = subMethod.invoke(obj);
         } catch (Exception e) {
             return new ArrayList<Object>();
         }
@@ -1573,7 +1525,7 @@ public class ExcelUtil<T> {
         getMethodName.append(name.substring(1));
         Method method = null;
         try {
-            method = pojoClass.getMethod(getMethodName.toString(), new Class[]{});
+            method = pojoClass.getMethod(getMethodName.toString());
         } catch (Exception e) {
             log.error("获取对象异常{}", e.getMessage());
         }

@@ -1,18 +1,8 @@
 package org.huanzhang.project.common;
 
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Resource;
-import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.util.FastByteArrayOutputStream;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 import com.google.code.kaptcha.Producer;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.utils.sign.Base64;
@@ -20,6 +10,16 @@ import org.huanzhang.common.utils.uuid.IdUtils;
 import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.project.system.service.ISysConfigService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.FastByteArrayOutputStream;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 验证码操作处理

@@ -1,15 +1,11 @@
 package org.huanzhang.framework.security.service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import javax.servlet.http.HttpServletRequest;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import eu.bitwalker.useragentutils.UserAgent;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.utils.ServletUtils;
@@ -19,10 +15,14 @@ import org.huanzhang.common.utils.ip.IpUtils;
 import org.huanzhang.common.utils.uuid.IdUtils;
 import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.security.LoginUser;
-import eu.bitwalker.useragentutils.UserAgent;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * token验证处理
@@ -51,7 +51,7 @@ public class TokenService {
 
     private static final Long MILLIS_MINUTE_TWENTY = 20 * 60 * 1000L;
 
-    @Autowired
+    @Resource
     private RedisCache redisCache;
 
     /**
@@ -68,8 +68,7 @@ public class TokenService {
                 // 解析对应的权限以及用户信息
                 String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
                 String userKey = getTokenKey(uuid);
-                LoginUser user = redisCache.getCacheObject(userKey);
-                return user;
+                return redisCache.getCacheObject(userKey);
             } catch (Exception e) {
                 log.error("获取用户信息异常'{}'", e.getMessage());
             }
@@ -118,7 +117,6 @@ public class TokenService {
      * 验证令牌有效期，相差不足20分钟，自动刷新缓存
      *
      * @param loginUser 登录信息
-     * @return 令牌
      */
     public void verifyToken(LoginUser loginUser) {
         long expireTime = loginUser.getExpireTime();
@@ -162,10 +160,10 @@ public class TokenService {
      * @return 令牌
      */
     private String createToken(Map<String, Object> claims) {
-        String token = Jwts.builder()
-                .setClaims(claims)
-                .signWith(SignatureAlgorithm.HS512, secret).compact();
-        return token;
+        return Jwts.builder()
+                .claims(claims)
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes()), Jwts.SIG.HS512)
+                .compact();
     }
 
     /**
@@ -176,27 +174,14 @@ public class TokenService {
      */
     private Claims parseToken(String token) {
         return Jwts.parser()
-                .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    /**
-     * 从令牌中获取用户名
-     *
-     * @param token 令牌
-     * @return 用户名
-     */
-    public String getUsernameFromToken(String token) {
-        Claims claims = parseToken(token);
-        return claims.getSubject();
+                .verifyWith(Keys.hmacShaKeyFor(secret.getBytes()))
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     /**
      * 获取请求token
-     *
-     * @param request
-     * @return token
      */
     private String getToken(HttpServletRequest request) {
         String token = request.getHeader(header);

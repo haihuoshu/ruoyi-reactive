@@ -1,14 +1,14 @@
 package org.huanzhang.project.system.domain;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.huanzhang.framework.web.domain.BaseEntity;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 菜单权限表 sys_menu

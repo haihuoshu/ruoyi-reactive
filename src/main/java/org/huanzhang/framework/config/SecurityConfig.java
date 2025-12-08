@@ -1,6 +1,10 @@
 package org.huanzhang.framework.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.annotation.Resource;
+import org.huanzhang.framework.config.properties.PermitAllUrlProperties;
+import org.huanzhang.framework.security.filter.JwtAuthenticationTokenFilter;
+import org.huanzhang.framework.security.handle.AuthenticationEntryPointImpl;
+import org.huanzhang.framework.security.handle.LogoutSuccessHandlerImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -9,6 +13,8 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -16,53 +22,49 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.filter.CorsFilter;
-import org.huanzhang.framework.config.properties.PermitAllUrlProperties;
-import org.huanzhang.framework.security.filter.JwtAuthenticationTokenFilter;
-import org.huanzhang.framework.security.handle.AuthenticationEntryPointImpl;
-import org.huanzhang.framework.security.handle.LogoutSuccessHandlerImpl;
 
 /**
  * spring security配置
  *
  * @author ruoyi
  */
-@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
+@EnableMethodSecurity(securedEnabled = true)
 @Configuration
 public class SecurityConfig {
     /**
      * 自定义用户认证逻辑
      */
-    @Autowired
+    @Resource
     private UserDetailsService userDetailsService;
 
     /**
      * 认证失败处理类
      */
-    @Autowired
+    @Resource
     private AuthenticationEntryPointImpl unauthorizedHandler;
 
     /**
      * 退出处理类
      */
-    @Autowired
+    @Resource
     private LogoutSuccessHandlerImpl logoutSuccessHandler;
 
     /**
      * token认证过滤器
      */
-    @Autowired
+    @Resource
     private JwtAuthenticationTokenFilter authenticationTokenFilter;
 
     /**
      * 跨域过滤器
      */
-    @Autowired
+    @Resource
     private CorsFilter corsFilter;
 
     /**
      * 允许匿名访问的地址
      */
-    @Autowired
+    @Resource
     private PermitAllUrlProperties permitAllUrl;
 
     /**
@@ -70,8 +72,7 @@ public class SecurityConfig {
      */
     @Bean
     public AuthenticationManager authenticationManager() {
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userDetailsService);
         daoAuthenticationProvider.setPasswordEncoder(bCryptPasswordEncoder());
         return new ProviderManager(daoAuthenticationProvider);
     }
@@ -95,23 +96,21 @@ public class SecurityConfig {
     protected SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 // CSRF禁用，因为不使用session
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 // 禁用HTTP响应标头
-                .headers((headersCustomizer) -> {
-                    headersCustomizer.cacheControl(cache -> cache.disable()).frameOptions(options -> options.sameOrigin());
-                })
+                .headers((headersCustomizer) -> headersCustomizer.cacheControl(HeadersConfigurer.CacheControlConfig::disable).frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 // 认证失败处理类
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 // 基于token，所以不需要session
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 注解标记允许匿名访问的url
                 .authorizeHttpRequests((requests) -> {
-                    permitAllUrl.getUrls().forEach(url -> requests.antMatchers(url).permitAll());
+                    permitAllUrl.getUrls().forEach(url -> requests.requestMatchers(url).permitAll());
                     // 对于登录login 注册register 验证码captchaImage 允许匿名访问
-                    requests.antMatchers("/login", "/register", "/captchaImage").permitAll()
+                    requests.requestMatchers("/login", "/register", "/captchaImage").permitAll()
                             // 静态资源，可匿名访问
-                            .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js", "/profile/**").permitAll()
-                            .antMatchers("/swagger-ui.html", "/swagger-resources/**", "/webjars/**", "/*/api-docs", "/druid/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js", "/profile/**").permitAll()
+                            .requestMatchers("/swagger-ui.html", "/swagger-resources/**", "/webjars/**", "/*/api-docs", "/druid/**").permitAll()
                             // 除上面外的所有请求全部需要鉴权认证
                             .anyRequest().authenticated();
                 })

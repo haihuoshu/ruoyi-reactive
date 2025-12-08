@@ -1,29 +1,25 @@
 package org.huanzhang.framework.config;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.sql.DataSource;
-
+import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceBuilder;
+import com.alibaba.druid.spring.boot3.autoconfigure.properties.DruidStatProperties;
+import com.alibaba.druid.util.Utils;
+import jakarta.servlet.*;
+import org.huanzhang.common.utils.spring.SpringUtils;
+import org.huanzhang.framework.aspectj.lang.enums.DataSourceType;
+import org.huanzhang.framework.config.properties.DruidProperties;
+import org.huanzhang.framework.datasource.DynamicDataSource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceBuilder;
-import com.alibaba.druid.spring.boot.autoconfigure.properties.DruidStatProperties;
-import com.alibaba.druid.util.Utils;
-import org.huanzhang.common.utils.spring.SpringUtils;
-import org.huanzhang.framework.aspectj.lang.enums.DataSourceType;
-import org.huanzhang.framework.config.properties.DruidProperties;
-import org.huanzhang.framework.datasource.DynamicDataSource;
+
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * druid 配置多数据源
@@ -67,7 +63,7 @@ public class DruidConfig {
         try {
             DataSource dataSource = SpringUtils.getBean(beanName);
             targetDataSources.put(sourceName, dataSource);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -87,7 +83,7 @@ public class DruidConfig {
         // 创建filter进行过滤
         Filter filter = new Filter() {
             @Override
-            public void init(javax.servlet.FilterConfig filterConfig) throws ServletException {
+            public void init(jakarta.servlet.FilterConfig filterConfig) {
             }
 
             @Override

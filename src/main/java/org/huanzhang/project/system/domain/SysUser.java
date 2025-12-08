@@ -1,9 +1,8 @@
 package org.huanzhang.project.system.domain;
 
-import java.util.Date;
-import java.util.List;
-import javax.validation.constraints.*;
-
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.huanzhang.common.xss.Xss;
@@ -12,6 +11,9 @@ import org.huanzhang.framework.aspectj.lang.annotation.Excel.ColumnType;
 import org.huanzhang.framework.aspectj.lang.annotation.Excel.Type;
 import org.huanzhang.framework.aspectj.lang.annotation.Excels;
 import org.huanzhang.framework.web.domain.BaseEntity;
+
+import java.util.Date;
+import java.util.List;
 
 /**
  * 用户对象 sys_user

@@ -1,7 +1,13 @@
 package org.huanzhang.framework.web.exception;
 
-import javax.servlet.http.HttpServletRequest;
-
+import jakarta.servlet.http.HttpServletRequest;
+import org.huanzhang.common.constant.HttpStatus;
+import org.huanzhang.common.core.text.Convert;
+import org.huanzhang.common.exception.DemoModeException;
+import org.huanzhang.common.exception.ServiceException;
+import org.huanzhang.common.utils.StringUtils;
+import org.huanzhang.common.utils.html.EscapeUtil;
+import org.huanzhang.framework.web.domain.AjaxResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,13 +18,6 @@ import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.huanzhang.common.constant.HttpStatus;
-import org.huanzhang.common.core.text.Convert;
-import org.huanzhang.common.exception.DemoModeException;
-import org.huanzhang.common.exception.ServiceException;
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.utils.html.EscapeUtil;
-import org.huanzhang.framework.web.domain.AjaxResult;
 
 /**
  * 全局异常处理器

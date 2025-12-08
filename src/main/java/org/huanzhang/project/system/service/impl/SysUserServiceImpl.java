@@ -1,16 +1,6 @@
 package org.huanzhang.project.system.service.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.validation.Validator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
+import jakarta.validation.Validator;
 import org.huanzhang.common.constant.UserConstants;
 import org.huanzhang.common.exception.ServiceException;
 import org.huanzhang.common.utils.SecurityUtils;
@@ -18,19 +8,21 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.bean.BeanValidators;
 import org.huanzhang.common.utils.spring.SpringUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
-import org.huanzhang.project.system.domain.SysPost;
-import org.huanzhang.project.system.domain.SysRole;
-import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.domain.SysUserPost;
-import org.huanzhang.project.system.domain.SysUserRole;
-import org.huanzhang.project.system.mapper.SysPostMapper;
-import org.huanzhang.project.system.mapper.SysRoleMapper;
-import org.huanzhang.project.system.mapper.SysUserMapper;
-import org.huanzhang.project.system.mapper.SysUserPostMapper;
-import org.huanzhang.project.system.mapper.SysUserRoleMapper;
+import org.huanzhang.project.system.domain.*;
+import org.huanzhang.project.system.mapper.*;
 import org.huanzhang.project.system.service.ISysConfigService;
 import org.huanzhang.project.system.service.ISysDeptService;
 import org.huanzhang.project.system.service.ISysUserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户 业务层处理
