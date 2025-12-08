@@ -1,26 +1,27 @@
 package org.huanzhang.framework.web.controller;
 
-import java.beans.PropertyEditorSupport;
-import java.util.Date;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.InitBinder;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.huanzhang.common.constant.HttpStatus;
+import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.PageUtils;
 import org.huanzhang.common.utils.SecurityUtils;
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.utils.sql.SqlUtil;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.framework.web.page.PageDomain;
 import org.huanzhang.framework.web.page.TableDataInfo;
-import org.huanzhang.framework.web.page.TableSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+
+import java.beans.PropertyEditorSupport;
+import java.util.Date;
+import java.util.List;
+
+import static org.huanzhang.framework.web.page.TableSupport.*;
 
 /**
  * web层通用数据处理
@@ -54,19 +55,15 @@ public class BaseController {
     /**
      * 设置请求排序数据
      */
-    protected void startOrderBy() {
-        PageDomain pageDomain = TableSupport.buildPageRequest();
-        if (StringUtils.isNotEmpty(pageDomain.getOrderBy())) {
-            String orderBy = SqlUtil.escapeOrderBySql(pageDomain.getOrderBy());
-            PageHelper.orderBy(orderBy);
-        }
-    }
-
-    /**
-     * 清理分页的线程变量
-     */
-    protected void clearPage() {
-        PageUtils.clearPage();
+    protected void startPage(ServerHttpRequest request) {
+        PageDomain pageDomain = new PageDomain();
+        pageDomain.setPageNum(Convert.toInt(request.getQueryParams().getFirst(PAGE_NUM), 1));
+        pageDomain.setPageSize(Convert.toInt(request.getQueryParams().getFirst(PAGE_SIZE), 10));
+        pageDomain.setOrderByColumn(request.getQueryParams().getFirst(ORDER_BY_COLUMN));
+        pageDomain.setIsAsc(request.getQueryParams().getFirst(IS_ASC));
+        pageDomain.setReasonable(Convert.toBool(request.getQueryParams().getFirst(REASONABLE)));
+        //noinspection resource
+        PageHelper.startPage(pageDomain.getPageNum(), pageDomain.getPageSize(), pageDomain.getOrderBy()).setReasonable(pageDomain.getReasonable());
     }
 
     /**

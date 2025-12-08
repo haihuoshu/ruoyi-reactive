@@ -1,7 +1,6 @@
 package org.huanzhang.framework.security.filter;
 
 import jakarta.annotation.Resource;
-import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.service.TokenService;
@@ -27,13 +26,14 @@ public class JwtAuthenticationTokenFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        Authentication authentication = SecurityUtils.getAuthentication();
+        Authentication authentication = UsernamePasswordAuthenticationToken.unauthenticated(null, null);
 
         LoginUser loginUser = tokenService.getLoginUser(exchange.getRequest());
-        if (StringUtils.isNotNull(loginUser) && StringUtils.isNull(authentication)) {
+        if (StringUtils.isNotNull(loginUser)) {
             tokenService.verifyToken(loginUser);
-            authentication = new UsernamePasswordAuthenticationToken(loginUser, null, loginUser.getAuthorities());
+            authentication = UsernamePasswordAuthenticationToken.authenticated(loginUser, null, loginUser.getAuthorities());
         }
         return chain.filter(exchange).contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
     }
+
 }
