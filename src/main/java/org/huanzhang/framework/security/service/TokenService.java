@@ -5,10 +5,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
-import org.huanzhang.common.utils.ServletUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.ip.AddressUtils;
 import org.huanzhang.common.utils.ip.IpUtils;
@@ -18,6 +16,7 @@ import org.huanzhang.framework.security.LoginUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -59,7 +58,7 @@ public class TokenService {
      *
      * @return 用户信息
      */
-    public LoginUser getLoginUser(HttpServletRequest request) {
+    public LoginUser getLoginUser(ServerHttpRequest request) {
         // 获取请求携带的令牌
         String token = getToken(request);
         if (StringUtils.isNotEmpty(token)) {
@@ -101,10 +100,10 @@ public class TokenService {
      * @param loginUser 用户信息
      * @return 令牌
      */
-    public String createToken(LoginUser loginUser) {
+    public String createToken(ServerHttpRequest request, LoginUser loginUser) {
         String token = IdUtils.fastUUID();
         loginUser.setToken(token);
-        setUserAgent(loginUser);
+        setUserAgent(request, loginUser);
         refreshToken(loginUser);
 
         Map<String, Object> claims = new HashMap<>();
@@ -144,9 +143,9 @@ public class TokenService {
      *
      * @param loginUser 登录信息
      */
-    public void setUserAgent(LoginUser loginUser) {
-        UserAgent userAgent = UserAgent.parseUserAgentString(ServletUtils.getRequest().getHeader("User-Agent"));
-        String ip = IpUtils.getIpAddr();
+    public void setUserAgent(ServerHttpRequest request, LoginUser loginUser) {
+        UserAgent userAgent = UserAgent.parseUserAgentString(request.getHeaders().getFirst("User-Agent"));
+        String ip = IpUtils.getIpAddr(request);
         loginUser.setIpaddr(ip);
         loginUser.setLoginLocation(AddressUtils.getRealAddressByIP(ip));
         loginUser.setBrowser(userAgent.getBrowser().getName());
@@ -183,10 +182,10 @@ public class TokenService {
     /**
      * 获取请求token
      */
-    private String getToken(HttpServletRequest request) {
-        String token = request.getHeader(header);
-        if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX)) {
-            token = token.replace(Constants.TOKEN_PREFIX, "");
+    private String getToken(ServerHttpRequest request) {
+        String token = request.getHeaders().getFirst(header);
+        if (StringUtils.isNotEmpty(token) && StringUtils.startsWith(token, Constants.TOKEN_PREFIX)) {
+            token = StringUtils.replace(token, Constants.TOKEN_PREFIX, "");
         }
         return token;
     }
