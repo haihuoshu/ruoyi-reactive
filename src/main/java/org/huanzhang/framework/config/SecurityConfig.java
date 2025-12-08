@@ -11,7 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -26,8 +26,8 @@ import org.springframework.web.cors.reactive.CorsWebFilter;
  *
  * @author ruoyi
  */
-@EnableMethodSecurity(securedEnabled = true)
 @Configuration
+@EnableReactiveMethodSecurity
 public class SecurityConfig {
     /**
      * 自定义用户认证逻辑

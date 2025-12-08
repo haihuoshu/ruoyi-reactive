@@ -1,12 +1,13 @@
 package org.huanzhang.framework.security;
 
-import java.util.Collection;
-import java.util.Set;
-
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import com.alibaba.fastjson2.annotation.JSONField;
 import org.huanzhang.project.system.domain.SysUser;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * 登录用户身份权限
@@ -14,7 +15,6 @@ import org.huanzhang.project.system.domain.SysUser;
  * @author ruoyi
  */
 public class LoginUser implements UserDetails {
-    private static final long serialVersionUID = 1L;
 
     /**
      * 用户ID
@@ -132,8 +132,6 @@ public class LoginUser implements UserDetails {
 
     /**
      * 指定用户是否解锁,锁定的用户无法进行身份验证
-     *
-     * @return
      */
     @JSONField(serialize = false)
     @Override
@@ -143,8 +141,6 @@ public class LoginUser implements UserDetails {
 
     /**
      * 指示是否已过期的用户的凭据(密码),过期的凭据防止认证
-     *
-     * @return
      */
     @JSONField(serialize = false)
     @Override
@@ -154,8 +150,6 @@ public class LoginUser implements UserDetails {
 
     /**
      * 是否可用 ,禁用的用户不能身份验证
-     *
-     * @return
      */
     @JSONField(serialize = false)
     @Override
@@ -229,6 +223,6 @@ public class LoginUser implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+        return AuthorityUtils.createAuthorityList(permissions);
     }
 }

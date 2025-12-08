@@ -10,9 +10,11 @@ import org.huanzhang.framework.web.page.TableDataInfo;
 import org.huanzhang.project.system.domain.SysConfig;
 import org.huanzhang.project.system.service.ISysConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -30,12 +32,12 @@ public class SysConfigController extends BaseController {
     /**
      * 获取参数配置列表
      */
-    @PreAuthorize("@ss.hasPermi('system:config:list')")
+    @PreAuthorize("hasAuthority('system:config:list')")
     @GetMapping("/list")
-    public TableDataInfo list(SysConfig config) {
-        startPage();
+    public Mono<TableDataInfo> list(SysConfig config, ServerHttpRequest request) {
+        startPage(request);
         List<SysConfig> list = configService.selectConfigList(config);
-        return getDataTable(list);
+        return Mono.just(getDataTable(list));
     }
 
     @Log(title = "参数管理", businessType = BusinessType.EXPORT)
@@ -43,7 +45,7 @@ public class SysConfigController extends BaseController {
     @PostMapping("/export")
     public void export(HttpServletResponse response, SysConfig config) {
         List<SysConfig> list = configService.selectConfigList(config);
-        ExcelUtil<SysConfig> util = new ExcelUtil<SysConfig>(SysConfig.class);
+        ExcelUtil<SysConfig> util = new ExcelUtil<>(SysConfig.class);
         util.exportExcel(response, list, "参数数据");
     }
 

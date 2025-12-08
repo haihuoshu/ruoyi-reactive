@@ -1,5 +1,16 @@
+#file: noinspection SpringBootApplicationYaml
 # 数据源配置
 spring:
+  # R2DBC 核心配置（关键）
+  r2dbc:
+    url: r2dbc:mysql://localhost:3306/ry-vue?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull
+    username: root
+    password: password
+    # 可选：连接池配置（若用 Druid R2DBC）
+    pool:
+      max-size: 10
+      min-idle: 2
+      initial-size: 5
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driverClassName: com.mysql.cj.jdbc.Driver
