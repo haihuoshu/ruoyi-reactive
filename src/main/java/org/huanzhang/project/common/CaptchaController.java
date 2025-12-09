@@ -8,11 +8,13 @@ import org.huanzhang.common.utils.sign.Base64;
 import org.huanzhang.common.utils.uuid.IdUtils;
 import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.project.system.service.ISysConfigService;
+import org.huanzhang.project.system.service.SysConfigService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -41,53 +43,56 @@ public class CaptchaController {
     private String captchaType;
 
     @Resource
-    private ISysConfigService configService;
+    private SysConfigService configService;
 
     /**
      * 生成验证码
      */
     @GetMapping("/captchaImage")
-    public AjaxResult getCode() throws IOException {
+    public Mono<AjaxResult> getCode() throws IOException {
         AjaxResult ajax = AjaxResult.success();
-        boolean captchaEnabled = configService.selectCaptchaEnabled();
-        ajax.put("captchaEnabled", captchaEnabled);
-        if (!captchaEnabled) {
-            return ajax;
-        }
+        return configService.selectCaptchaEnabled()
+                .publishOn(Schedulers.boundedElastic())
+                .map(captchaEnabled -> {
+                    ajax.put("captchaEnabled", captchaEnabled);
+                    if (!captchaEnabled) {
+                        return ajax;
+                    }
 
-        // 保存验证码信息
-        String uuid = IdUtils.simpleUUID();
-        String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
+                    // 保存验证码信息
+                    String uuid = IdUtils.simpleUUID();
+                    String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
 
-        String capStr, code = null;
-        BufferedImage image = null;
+                    String capStr, code = null;
+                    BufferedImage image = null;
 
-        // 生成验证码
-        if ("math".equals(captchaType)) {
-            String capText = captchaProducerMath.createText();
-            capStr = capText.substring(0, capText.lastIndexOf("@"));
-            code = capText.substring(capText.lastIndexOf("@") + 1);
-            image = captchaProducerMath.createImage(capStr);
-        } else if ("char".equals(captchaType)) {
-            capStr = code = captchaProducer.createText();
-            image = captchaProducer.createImage(capStr);
-        }
+                    // 生成验证码
+                    if ("math".equals(captchaType)) {
+                        String capText = captchaProducerMath.createText();
+                        capStr = capText.substring(0, capText.lastIndexOf("@"));
+                        code = capText.substring(capText.lastIndexOf("@") + 1);
+                        image = captchaProducerMath.createImage(capStr);
+                    } else if ("char".equals(captchaType)) {
+                        capStr = code = captchaProducer.createText();
+                        image = captchaProducer.createImage(capStr);
+                    }
 
-        if (Objects.isNull(image)) {
-            return ajax;
-        }
+                    if (Objects.isNull(image)) {
+                        return ajax;
+                    }
 
-        redisCache.setCacheObject(verifyKey, code, Constants.CAPTCHA_EXPIRATION, TimeUnit.MINUTES);
-        // 转换流信息写出
-        FastByteArrayOutputStream os = new FastByteArrayOutputStream();
-        try {
-            ImageIO.write(image, "jpg", os);
-        } catch (IOException e) {
-            return AjaxResult.error(e.getMessage());
-        }
+                    redisCache.setCacheObject(verifyKey, code, Constants.CAPTCHA_EXPIRATION, TimeUnit.MINUTES);
+                    // 转换流信息写出
+                    FastByteArrayOutputStream os = new FastByteArrayOutputStream();
+                    try {
+                        ImageIO.write(image, "jpg", os);
+                    } catch (IOException e) {
+                        return AjaxResult.error(e.getMessage());
+                    }
 
-        ajax.put("uuid", uuid);
-        ajax.put("img", Base64.encode(os.toByteArray()));
-        return ajax;
+                    ajax.put("uuid", uuid);
+                    ajax.put("img", Base64.encode(os.toByteArray()));
+                    return ajax;
+                });
     }
 }

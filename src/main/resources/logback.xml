@@ -72,11 +72,12 @@
     </appender>
 
     <!-- 系统模块日志级别控制  -->
-    <logger name="org.huanzhang" level="info"/>
+    <logger name="org.huanzhang" level="DEBUG"/>
     <!-- Spring日志级别控制  -->
     <logger name="org.springframework" level="warn"/>
+    <logger name="com.querydsl.r2dbc" level="FINE"/>
 
-    <root level="info">
+    <root level="DEBUG">
         <appender-ref ref="console"/>
     </root>
 

@@ -3,6 +3,7 @@ package org.huanzhang.framework.security.filter;
 import jakarta.annotation.Resource;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginUser;
+import org.huanzhang.framework.security.ReactiveExchangeContextHolder;
 import org.huanzhang.framework.security.service.TokenService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -33,7 +34,9 @@ public class JwtAuthenticationTokenFilter implements WebFilter {
             tokenService.verifyToken(loginUser);
             authentication = UsernamePasswordAuthenticationToken.authenticated(loginUser, null, loginUser.getAuthorities());
         }
-        return chain.filter(exchange).contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
+        return chain.filter(exchange)
+                .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
+                .contextWrite(ReactiveExchangeContextHolder.withExchangeContext(Mono.just(exchange)));
     }
 
 }

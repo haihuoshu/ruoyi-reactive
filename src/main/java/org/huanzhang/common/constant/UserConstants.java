@@ -5,6 +5,7 @@ package org.huanzhang.common.constant;
  *
  * @author ruoyi
  */
+@SuppressWarnings("unused")
 public class UserConstants {
     /**
      * 平台内系统用户的唯一标志
@@ -55,6 +56,10 @@ public class UserConstants {
      * 是否为系统默认（是）
      */
     public static final String YES = "Y";
+    /**
+     * 是否为系统默认（否）
+     */
+    public static final String NO = "N";
 
     /**
      * 是否菜单外链（是）

@@ -6,7 +6,7 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.manager.factory.AsyncFactory;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.service.TokenService;
-import org.huanzhang.framework.web.domain.R;
+import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.framework.webflux.utils.WebFluxUtils;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.Authentication;
@@ -38,6 +38,6 @@ public class LogoutSuccessHandlerImpl implements ServerLogoutSuccessHandler {
             // 记录用户退出日志
             AsyncFactory.recordLogininfor(exchange.getExchange().getRequest(), userName, Constants.LOGOUT, "退出成功");
         }
-        return WebFluxUtils.writeBodyAsString(exchange.getExchange().getResponse(), R.ok(null, "退出成功"));
+        return WebFluxUtils.writeBodyAsString(exchange.getExchange().getResponse(), AjaxResponse.ok(null, "退出成功"));
     }
 }

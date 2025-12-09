@@ -3,33 +3,33 @@ package org.huanzhang.framework.aspectj;
 import com.alibaba.fastjson2.JSON;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.AfterReturning;
-import org.aspectj.lang.annotation.AfterThrowing;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.enums.HttpMethod;
 import org.huanzhang.common.filter.PropertyPreExcludeFilter;
 import org.huanzhang.common.utils.ExceptionUtil;
-import org.huanzhang.common.utils.SecurityUtils;
-import org.huanzhang.common.utils.ServletUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.ip.IpUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.Log;
 import org.huanzhang.framework.aspectj.lang.enums.BusinessStatus;
-import org.huanzhang.framework.manager.AsyncManager;
 import org.huanzhang.framework.manager.factory.AsyncFactory;
 import org.huanzhang.framework.security.LoginUser;
+import org.huanzhang.framework.security.ReactiveExchangeContextHolder;
+import org.huanzhang.framework.security.ReactiveSecurityUtils;
 import org.huanzhang.project.monitor.domain.SysOperLog;
 import org.huanzhang.project.system.domain.SysUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.NamedThreadLocal;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.Map;
@@ -39,10 +39,10 @@ import java.util.Map;
  *
  * @author ruoyi
  */
+@Slf4j
 @Aspect
 @Component
 public class LogAspect {
-    private static final Logger log = LoggerFactory.getLogger(LogAspect.class);
 
     /**
      * 排除敏感属性字段
@@ -50,92 +50,95 @@ public class LogAspect {
     public static final String[] EXCLUDE_PROPERTIES = {"password", "oldPassword", "newPassword", "confirmPassword"};
 
     /**
-     * 计算操作消耗时间
-     */
-    private static final ThreadLocal<Long> TIME_THREADLOCAL = new NamedThreadLocal<Long>("Cost Time");
-
-    /**
      * 处理请求前执行
      */
-    @Before(value = "@annotation(controllerLog)")
-    public void doBefore(JoinPoint joinPoint, Log controllerLog) {
-        TIME_THREADLOCAL.set(System.currentTimeMillis());
+    @Around(value = "@annotation(org.huanzhang.framework.aspectj.lang.annotation.Log)")
+    public Mono<?> doAround(ProceedingJoinPoint joinPoint) {
+        // 获取方法注解
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Log controllerLog = signature.getMethod().getAnnotation(Log.class);
+
+        long start = System.currentTimeMillis();
+
+        // 获取Request
+        return ReactiveExchangeContextHolder.getRequest()
+                .flatMap(request -> {
+                    // 获取登录用户
+                    return ReactiveSecurityUtils.getLoginUser()
+                            .flatMap(loginUser -> {
+                                try {
+                                    Object proceed = joinPoint.proceed();
+
+                                    if (proceed instanceof Mono<?> mono) {
+                                        return mono
+                                                .flatMap(jsonResult ->
+                                                        handleLog(request, loginUser, joinPoint, controllerLog, null, jsonResult, start)
+                                                                .thenReturn(jsonResult)
+                                                )
+                                                .onErrorResume(e ->
+                                                        handleLog(request, loginUser, joinPoint, controllerLog, e, null, start)
+                                                                .then(Mono.error(e))
+                                                );
+                                    } else if (proceed instanceof Flux<?> flux) {
+                                        return flux.collectList()
+                                                .flatMap(jsonResult ->
+                                                        handleLog(request, loginUser, joinPoint, controllerLog, null, jsonResult, start)
+                                                                .thenReturn(jsonResult)
+                                                )
+                                                .onErrorResume(e ->
+                                                        handleLog(request, loginUser, joinPoint, controllerLog, e, null, start)
+                                                                .then(Mono.error(e))
+                                                );
+                                    }
+
+                                    return handleLog(request, loginUser, joinPoint, controllerLog, null, proceed, start)
+                                            .thenReturn(proceed);
+                                } catch (Throwable e) {
+                                    return handleLog(request, loginUser, joinPoint, controllerLog, e, null, start)
+                                            .then(Mono.error(e));
+                                }
+                            });
+                });
     }
 
-    /**
-     * 处理完请求后执行
-     *
-     * @param joinPoint 切点
-     */
-    @AfterReturning(pointcut = "@annotation(controllerLog)", returning = "jsonResult")
-    public void doAfterReturning(JoinPoint joinPoint, Log controllerLog, Object jsonResult) {
-        handleLog(joinPoint, controllerLog, null, jsonResult);
-    }
+    private Mono<Object> handleLog(ServerHttpRequest request, LoginUser loginUser, final JoinPoint joinPoint, Log controllerLog, final Throwable e, Object jsonResult, long start) {
 
-    /**
-     * 拦截异常操作
-     *
-     * @param joinPoint 切点
-     * @param e         异常
-     */
-    @AfterThrowing(value = "@annotation(controllerLog)", throwing = "e")
-    public void doAfterThrowing(JoinPoint joinPoint, Log controllerLog, Exception e) {
-        handleLog(joinPoint, controllerLog, e, null);
-    }
-
-    protected void handleLog(final JoinPoint joinPoint, Log controllerLog, final Exception e, Object jsonResult) {
-        try {
-            // 获取当前的用户
-            LoginUser loginUser = SecurityUtils.getLoginUser();
-
-            // *========数据库日志=========*//
-            SysOperLog operLog = new SysOperLog();
-            operLog.setStatus(BusinessStatus.SUCCESS.ordinal());
-            // 请求的地址
-            String ip = IpUtils.getIpAddr();
-            operLog.setOperIp(ip);
-            operLog.setOperUrl(StringUtils.substring(ServletUtils.getRequest().getRequestURI(), 0, 255));
-            if (loginUser != null) {
-                operLog.setOperName(loginUser.getUsername());
-                SysUser currentUser = loginUser.getUser();
-                if (StringUtils.isNotNull(currentUser) && StringUtils.isNotNull(currentUser.getDept())) {
-                    operLog.setDeptName(currentUser.getDept().getDeptName());
-                }
-            }
-
-            if (e != null) {
-                operLog.setStatus(BusinessStatus.FAIL.ordinal());
-                operLog.setErrorMsg(StringUtils.substring(Convert.toStr(e.getMessage(), ExceptionUtil.getExceptionMessage(e)), 0, 2000));
-            }
-            // 设置方法名称
-            String className = joinPoint.getTarget().getClass().getName();
-            String methodName = joinPoint.getSignature().getName();
-            operLog.setMethod(className + "." + methodName + "()");
-            // 设置请求方式
-            operLog.setRequestMethod(ServletUtils.getRequest().getMethod());
-            // 处理设置注解上的参数
-            getControllerMethodDescription(joinPoint, controllerLog, operLog, jsonResult);
-            // 设置消耗时间
-            operLog.setCostTime(System.currentTimeMillis() - TIME_THREADLOCAL.get());
-            // 保存数据库
-            AsyncManager.me().execute(AsyncFactory.recordOper(operLog));
-        } catch (Exception exp) {
-            // 记录本地异常日志
-            log.error("异常信息:{}", exp.getMessage());
-            exp.printStackTrace();
-        } finally {
-            TIME_THREADLOCAL.remove();
+        // *========数据库日志=========*//
+        SysOperLog operLog = new SysOperLog();
+        operLog.setStatus(BusinessStatus.SUCCESS.ordinal());
+        // 请求的地址
+        String ip = IpUtils.getIpAddr(request);
+        operLog.setOperIp(ip);
+        operLog.setOperUrl(StringUtils.substring(request.getURI().getPath(), 0, 255));
+        operLog.setOperName(loginUser.getUsername());
+        SysUser currentUser = loginUser.getUser();
+        if (StringUtils.isNotNull(currentUser) && StringUtils.isNotNull(currentUser.getDept())) {
+            operLog.setDeptName(currentUser.getDept().getDeptName());
         }
+
+        if (e != null) {
+            operLog.setStatus(BusinessStatus.FAIL.ordinal());
+            operLog.setErrorMsg(StringUtils.substring(Convert.toStr(e.getMessage(), ExceptionUtil.getExceptionMessage(e)), 0, 2000));
+        }
+        // 设置方法名称
+        String className = joinPoint.getTarget().getClass().getName();
+        String methodName = joinPoint.getSignature().getName();
+        operLog.setMethod(className + "." + methodName + "()");
+        // 设置请求方式
+        operLog.setRequestMethod(request.getMethod().name());
+        // 处理设置注解上的参数
+        getControllerMethodDescription(request, joinPoint, controllerLog, operLog, jsonResult);
+        // 设置消耗时间
+        operLog.setCostTime(System.currentTimeMillis() - start);
+        // 保存数据库
+        AsyncFactory.recordOper(operLog);
+        return Mono.empty();
     }
 
     /**
      * 获取注解中对方法的描述信息 用于Controller层注解
-     *
-     * @param log     日志
-     * @param operLog 操作日志
-     * @throws Exception
      */
-    public void getControllerMethodDescription(JoinPoint joinPoint, Log log, SysOperLog operLog, Object jsonResult) throws Exception {
+    public void getControllerMethodDescription(ServerHttpRequest request, JoinPoint joinPoint, Log log, SysOperLog operLog, Object jsonResult) {
         // 设置action动作
         operLog.setBusinessType(log.businessType().ordinal());
         // 设置标题
@@ -145,7 +148,7 @@ public class LogAspect {
         // 是否需要保存request，参数和值
         if (log.isSaveRequestData()) {
             // 获取参数的信息，传入到数据库中。
-            setRequestValue(joinPoint, operLog, log.excludeParamNames());
+            setRequestValue(request, joinPoint, operLog, log.excludeParamNames());
         }
         // 是否需要保存response，参数和值
         if (log.isSaveResponseData() && StringUtils.isNotNull(jsonResult)) {
@@ -155,13 +158,10 @@ public class LogAspect {
 
     /**
      * 获取请求的参数，放到log中
-     *
-     * @param operLog 操作日志
-     * @throws Exception 异常
      */
-    private void setRequestValue(JoinPoint joinPoint, SysOperLog operLog, String[] excludeParamNames) throws Exception {
+    private void setRequestValue(ServerHttpRequest request, JoinPoint joinPoint, SysOperLog operLog, String[] excludeParamNames) {
         String requestMethod = operLog.getRequestMethod();
-        Map<?, ?> paramsMap = ServletUtils.getParamMap(ServletUtils.getRequest());
+        Map<?, ?> paramsMap = request.getQueryParams();
         if (StringUtils.isEmpty(paramsMap) && StringUtils.equalsAny(requestMethod, HttpMethod.PUT.name(), HttpMethod.POST.name(), HttpMethod.DELETE.name())) {
             String params = argsArrayToString(joinPoint.getArgs(), excludeParamNames);
             operLog.setOperParam(StringUtils.substring(params, 0, 2000));
@@ -174,19 +174,19 @@ public class LogAspect {
      * 参数拼装
      */
     private String argsArrayToString(Object[] paramsArray, String[] excludeParamNames) {
-        String params = "";
+        StringBuilder params = new StringBuilder();
         if (paramsArray != null) {
             for (Object o : paramsArray) {
                 if (StringUtils.isNotNull(o) && !isFilterObject(o)) {
                     try {
                         String jsonObj = JSON.toJSONString(o, excludePropertyPreFilter(excludeParamNames));
-                        params += jsonObj + " ";
-                    } catch (Exception e) {
+                        params.append(jsonObj).append(" ");
+                    } catch (Exception ignored) {
                     }
                 }
             }
         }
-        return params.trim();
+        return params.toString().trim();
     }
 
     /**
