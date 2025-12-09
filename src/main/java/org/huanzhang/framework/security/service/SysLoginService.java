@@ -15,8 +15,8 @@ import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.context.AuthenticationContextHolder;
 import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.service.ISysConfigService;
 import org.huanzhang.project.system.service.ISysUserService;
+import org.huanzhang.project.system.service.SysConfigService;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -44,7 +44,7 @@ public class SysLoginService {
     private ISysUserService userService;
 
     @Resource
-    private ISysConfigService configService;
+    private SysConfigService configService;
 
     /**
      * 登录验证
@@ -94,20 +94,22 @@ public class SysLoginService {
      * @param uuid     唯一标识
      */
     public void validateCaptcha(ServerHttpRequest request, String username, String code, String uuid) {
-        boolean captchaEnabled = configService.selectCaptchaEnabled();
-        if (captchaEnabled) {
-            String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.nvl(uuid, "");
-            String captcha = redisCache.getCacheObject(verifyKey);
-            if (captcha == null) {
-                AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"));
-                throw new CaptchaExpireException();
-            }
-            redisCache.deleteObject(verifyKey);
-            if (!code.equalsIgnoreCase(captcha)) {
-                AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.error"));
-                throw new CaptchaException();
-            }
-        }
+        configService.selectCaptchaEnabled()
+                .subscribe(captchaEnabled -> {
+                    if (captchaEnabled) {
+                        String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.nvl(uuid, "");
+                        String captcha = redisCache.getCacheObject(verifyKey);
+                        if (captcha == null) {
+                            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"));
+                            throw new CaptchaExpireException();
+                        }
+                        redisCache.deleteObject(verifyKey);
+                        if (!code.equalsIgnoreCase(captcha)) {
+                            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.error"));
+                            throw new CaptchaException();
+                        }
+                    }
+                });
     }
 
     /**
@@ -135,11 +137,13 @@ public class SysLoginService {
             throw new UserPasswordNotMatchException();
         }
         // IP黑名单校验
-        String blackStr = configService.selectConfigByKey("sys.login.blackIPList");
-        if (IpUtils.isMatchedIp(blackStr, IpUtils.getIpAddr(request))) {
-            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("login.blocked"));
-            throw new BlackListException();
-        }
+        configService.selectConfigByKey("sys.login.blackIPList")
+                .subscribe(blackStr -> {
+                    if (IpUtils.isMatchedIp(blackStr, IpUtils.getIpAddr(request))) {
+                        AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("login.blocked"));
+                        throw new BlackListException();
+                    }
+                });
     }
 
     /**

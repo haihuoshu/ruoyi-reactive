@@ -34,6 +34,7 @@
         <oshi.version>6.8.1</oshi.version>
         <velocity.version>2.3</velocity.version>
         <openfeign.version>7.1</openfeign.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
     </properties>
 
     <dependencies>
@@ -247,6 +248,29 @@
             <artifactId>r2dbc-pool</artifactId>
         </dependency>
 
+        <!-- 代码简化 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+        <!-- 对象转换 -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-ui</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
     </dependencies>
 
     <repositories>
@@ -282,6 +306,24 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>io.github.openfeign.querydsl</groupId>
                 <artifactId>querydsl-maven-plugin</artifactId>
                 <version>${openfeign.version}</version>
@@ -292,8 +334,7 @@
                     <jdbcPassword>password</jdbcPassword>
                     <packageName>org.huanzhang.project.system.entity</packageName>
                     <catalogPattern>ry-vue</catalogPattern>
-                    <targetFolder>${project.basedir}/target/generated-sources/annotations</targetFolder>
-                    <beansTargetFolder>${project.basedir}/src/main/java</beansTargetFolder>
+                    <targetFolder>${project.basedir}/src/main/java</targetFolder>
                     <exportBeans>true</exportBeans>
                     <customTypes>
                         <customType>com.querydsl.sql.types.LocalDateTimeType</customType>

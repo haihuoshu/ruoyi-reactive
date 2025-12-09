@@ -10,13 +10,13 @@ import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.service.SysLoginService;
 import org.huanzhang.framework.security.service.SysPermissionService;
 import org.huanzhang.framework.security.service.TokenService;
+import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.framework.web.domain.R;
 import org.huanzhang.project.system.domain.SysMenu;
 import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.domain.vo.RouterVo;
-import org.huanzhang.project.system.service.ISysConfigService;
 import org.huanzhang.project.system.service.ISysMenuService;
+import org.huanzhang.project.system.service.SysConfigService;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -51,7 +51,7 @@ public class SysLoginController {
     private TokenService tokenService;
 
     @Resource
-    private ISysConfigService configService;
+    private SysConfigService configService;
 
     /**
      * 登录方法
@@ -106,7 +106,7 @@ public class SysLoginController {
      * @return 路由信息
      */
     @GetMapping("getRouters")
-    public Mono<R<List<RouterVo>>> getRouters() {
+    public Mono<AjaxResponse<List<RouterVo>>> getRouters() {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
@@ -114,18 +114,20 @@ public class SysLoginController {
                 .map(LoginUser::getUserId)
                 .map(userId -> {
                     List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);
-                    return R.ok(menuService.buildMenus(menus));
+                    return AjaxResponse.ok(menuService.buildMenus(menus));
                 });
     }
 
     // 检查初始密码是否提醒修改
     public boolean initPasswordIsModify(Date pwdUpdateDate) {
+        //noinspection ReactiveStreamsUnusedPublisher
         Integer initPasswordModify = Convert.toInt(configService.selectConfigByKey("sys.account.initPasswordModify"));
         return initPasswordModify != null && initPasswordModify == 1 && pwdUpdateDate == null;
     }
 
     // 检查密码是否过期
     public boolean passwordIsExpiration(Date pwdUpdateDate) {
+        //noinspection ReactiveStreamsUnusedPublisher
         Integer passwordValidateDays = Convert.toInt(configService.selectConfigByKey("sys.account.passwordValidateDays"));
         if (passwordValidateDays != null && passwordValidateDays > 0) {
             if (StringUtils.isNull(pwdUpdateDate)) {

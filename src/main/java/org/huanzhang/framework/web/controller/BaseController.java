@@ -9,7 +9,7 @@ import org.huanzhang.common.utils.PageUtils;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.framework.web.page.PageDomain;
+import org.huanzhang.framework.web.domain.PageQuery;
 import org.huanzhang.framework.web.page.TableDataInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,14 +56,14 @@ public class BaseController {
      * 设置请求排序数据
      */
     protected void startPage(ServerHttpRequest request) {
-        PageDomain pageDomain = new PageDomain();
-        pageDomain.setPageNum(Convert.toInt(request.getQueryParams().getFirst(PAGE_NUM), 1));
-        pageDomain.setPageSize(Convert.toInt(request.getQueryParams().getFirst(PAGE_SIZE), 10));
-        pageDomain.setOrderByColumn(request.getQueryParams().getFirst(ORDER_BY_COLUMN));
-        pageDomain.setIsAsc(request.getQueryParams().getFirst(IS_ASC));
-        pageDomain.setReasonable(Convert.toBool(request.getQueryParams().getFirst(REASONABLE)));
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(Convert.toInt(request.getQueryParams().getFirst(PAGE_NUM), 1));
+        pageQuery.setPageSize(Convert.toInt(request.getQueryParams().getFirst(PAGE_SIZE), 10));
+        pageQuery.setOrderByColumn(request.getQueryParams().getFirst(ORDER_BY_COLUMN));
+        pageQuery.setIsAsc(request.getQueryParams().getFirst(IS_ASC));
+        pageQuery.setReasonable(Convert.toBool(request.getQueryParams().getFirst(REASONABLE)));
         //noinspection resource
-        PageHelper.startPage(pageDomain.getPageNum(), pageDomain.getPageSize(), pageDomain.getOrderBy()).setReasonable(pageDomain.getReasonable());
+        PageHelper.startPage(pageQuery.getPageNum(), pageQuery.getPageSize(), pageQuery.getOrderBy()).setReasonable(pageQuery.getReasonable());
     }
 
     /**

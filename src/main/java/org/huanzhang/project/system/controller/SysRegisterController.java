@@ -1,15 +1,16 @@
 package org.huanzhang.project.system.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.annotation.Resource;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.RegisterBody;
 import org.huanzhang.framework.security.service.SysRegisterService;
 import org.huanzhang.framework.web.controller.BaseController;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.project.system.service.ISysConfigService;
+import org.huanzhang.project.system.service.SysConfigService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 /**
  * 注册验证
@@ -18,18 +19,22 @@ import org.huanzhang.project.system.service.ISysConfigService;
  */
 @RestController
 public class SysRegisterController extends BaseController {
-    @Autowired
+
+    @Resource
     private SysRegisterService registerService;
 
-    @Autowired
-    private ISysConfigService configService;
+    @Resource
+    private SysConfigService configService;
 
     @PostMapping("/register")
-    public AjaxResult register(@RequestBody RegisterBody user) {
-        if (!("true".equals(configService.selectConfigByKey("sys.account.registerUser")))) {
-            return error("当前系统没有开启注册功能！");
-        }
-        String msg = registerService.register(user);
-        return StringUtils.isEmpty(msg) ? success() : error(msg);
+    public Mono<AjaxResult> register(@RequestBody RegisterBody user) {
+        return configService.selectConfigByKey("sys.account.registerUser")
+                .map(registerUser -> {
+                    if (!("true".equals(registerUser))) {
+                        return error("当前系统没有开启注册功能！");
+                    }
+                    String msg = registerService.register(user);
+                    return StringUtils.isEmpty(msg) ? success() : error(msg);
+                });
     }
 }

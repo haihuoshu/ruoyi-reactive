@@ -2,6 +2,7 @@ package org.huanzhang.framework.web.page;
 
 import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.utils.ServletUtils;
+import org.huanzhang.framework.web.domain.PageQuery;
 
 /**
  * 表格数据处理
@@ -37,17 +38,17 @@ public class TableSupport {
     /**
      * 封装分页对象
      */
-    public static PageDomain getPageDomain() {
-        PageDomain pageDomain = new PageDomain();
-        pageDomain.setPageNum(Convert.toInt(ServletUtils.getParameter(PAGE_NUM), 1));
-        pageDomain.setPageSize(Convert.toInt(ServletUtils.getParameter(PAGE_SIZE), 10));
-        pageDomain.setOrderByColumn(ServletUtils.getParameter(ORDER_BY_COLUMN));
-        pageDomain.setIsAsc(ServletUtils.getParameter(IS_ASC));
-        pageDomain.setReasonable(ServletUtils.getParameterToBool(REASONABLE));
-        return pageDomain;
+    public static PageQuery getPageDomain() {
+        PageQuery pageQuery = new PageQuery();
+        pageQuery.setPageNum(Convert.toInt(ServletUtils.getParameter(PAGE_NUM), 1));
+        pageQuery.setPageSize(Convert.toInt(ServletUtils.getParameter(PAGE_SIZE), 10));
+        pageQuery.setOrderByColumn(ServletUtils.getParameter(ORDER_BY_COLUMN));
+        pageQuery.setIsAsc(ServletUtils.getParameter(IS_ASC));
+        pageQuery.setReasonable(ServletUtils.getParameterToBool(REASONABLE));
+        return pageQuery;
     }
 
-    public static PageDomain buildPageRequest() {
+    public static PageQuery buildPageRequest() {
         return getPageDomain();
     }
 }

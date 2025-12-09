@@ -1,7 +1,7 @@
 package org.huanzhang.framework.interceptor;
 
 import org.huanzhang.framework.interceptor.annotation.RepeatSubmit;
-import org.huanzhang.framework.web.domain.R;
+import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.framework.webflux.utils.WebFluxUtils;
 import org.springframework.core.annotation.AnnotatedMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -39,7 +39,7 @@ public abstract class RepeatSubmitInterceptor implements WebFilter {
                                 .flatMap(isRepeat -> {
                                     if (isRepeat) {
                                         // 返回重复提交错误响应
-                                        return WebFluxUtils.writeBodyAsString(response, R.fail(annotation.message()));
+                                        return WebFluxUtils.writeBodyAsString(response, AjaxResponse.fail(annotation.message()));
                                     } else {
                                         return chain.filter(exchange);
                                     }
