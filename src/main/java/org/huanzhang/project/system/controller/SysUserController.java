@@ -10,13 +10,12 @@ import org.huanzhang.framework.aspectj.lang.enums.BusinessType;
 import org.huanzhang.framework.web.controller.BaseController;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.framework.web.page.TableDataInfo;
-import org.huanzhang.project.system.domain.SysDept;
 import org.huanzhang.project.system.domain.SysRole;
 import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.service.ISysDeptService;
 import org.huanzhang.project.system.service.ISysPostService;
 import org.huanzhang.project.system.service.ISysRoleService;
 import org.huanzhang.project.system.service.ISysUserService;
+import org.huanzhang.project.system.service.SysDeptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -41,7 +40,7 @@ public class SysUserController extends BaseController {
     private ISysRoleService roleService;
 
     @Autowired
-    private ISysDeptService deptService;
+    private SysDeptService deptService;
 
     @Autowired
     private ISysPostService postService;
@@ -213,12 +212,4 @@ public class SysUserController extends BaseController {
         return success();
     }
 
-    /**
-     * 获取部门树列表
-     */
-    @PreAuthorize("@ss.hasPermi('system:user:list')")
-    @GetMapping("/deptTree")
-    public AjaxResult deptTree(SysDept dept) {
-        return success(deptService.selectDeptTreeList(dept));
-    }
 }

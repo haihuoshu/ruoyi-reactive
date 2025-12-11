@@ -11,13 +11,12 @@ import org.huanzhang.framework.security.service.TokenService;
 import org.huanzhang.framework.web.controller.BaseController;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.framework.web.page.TableDataInfo;
-import org.huanzhang.project.system.domain.SysDept;
 import org.huanzhang.project.system.domain.SysRole;
 import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.domain.SysUserRole;
-import org.huanzhang.project.system.service.ISysDeptService;
 import org.huanzhang.project.system.service.ISysRoleService;
 import org.huanzhang.project.system.service.ISysUserService;
+import org.huanzhang.project.system.service.SysDeptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -46,7 +45,7 @@ public class SysRoleController extends BaseController {
     private ISysUserService userService;
 
     @Autowired
-    private ISysDeptService deptService;
+    private SysDeptService deptService;
 
     @PreAuthorize("@ss.hasPermi('system:role:list')")
     @GetMapping("/list")
@@ -225,8 +224,8 @@ public class SysRoleController extends BaseController {
     @GetMapping(value = "/deptTree/{roleId}")
     public AjaxResult deptTree(@PathVariable("roleId") Long roleId) {
         AjaxResult ajax = AjaxResult.success();
-        ajax.put("checkedKeys", deptService.selectDeptListByRoleId(roleId));
-        ajax.put("depts", deptService.selectDeptTreeList(new SysDept()));
+//        ajax.put("checkedKeys", deptService.selectDeptListByRoleId(roleId));
+//        ajax.put("depts", deptService.selectDeptTreeList(new SysDept()));
         return ajax;
     }
 }

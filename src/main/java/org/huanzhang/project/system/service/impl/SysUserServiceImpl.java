@@ -12,9 +12,9 @@ import org.huanzhang.common.utils.spring.SpringUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
 import org.huanzhang.project.system.domain.*;
 import org.huanzhang.project.system.mapper.*;
-import org.huanzhang.project.system.service.ISysDeptService;
 import org.huanzhang.project.system.service.ISysUserService;
 import org.huanzhang.project.system.service.SysConfigService;
+import org.huanzhang.project.system.service.SysDeptService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -53,7 +53,7 @@ public class SysUserServiceImpl implements ISysUserService {
     private SysConfigService configService;
 
     @Resource
-    private ISysDeptService deptService;
+    private SysDeptService deptService;
 
     @Resource
     protected Validator validator;

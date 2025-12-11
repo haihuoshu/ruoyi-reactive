@@ -1,304 +1,228 @@
 package org.huanzhang.project.system.service.impl;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import jakarta.annotation.Resource;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.huanzhang.common.constant.UserConstants;
 import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.exception.ServiceException;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.utils.spring.SpringUtils;
-import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
-import org.huanzhang.framework.web.domain.TreeSelect;
-import org.huanzhang.project.system.domain.SysDept;
-import org.huanzhang.project.system.domain.SysRole;
+import org.huanzhang.project.system.converter.SysDeptMapper;
 import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.mapper.SysDeptMapper;
-import org.huanzhang.project.system.mapper.SysRoleMapper;
-import org.huanzhang.project.system.service.ISysDeptService;
+import org.huanzhang.project.system.dto.SysDeptInsertDTO;
+import org.huanzhang.project.system.dto.SysDeptUpdateDTO;
+import org.huanzhang.project.system.entity.SysDept;
+import org.huanzhang.project.system.query.SysDeptQuery;
+import org.huanzhang.project.system.repository.SysDeptRepository;
+import org.huanzhang.project.system.service.SysDeptService;
+import org.huanzhang.project.system.vo.SysDeptVO;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Objects;
+import java.util.Set;
 
 /**
- * 部门管理 服务实现
+ * 部门表 业务处理
  *
- * @author ruoyi
+ * @author haihuoshu
+ * @version 2025-12-10
  */
 @Service
-public class SysDeptServiceImpl implements ISysDeptService {
-    @Autowired
-    private SysDeptMapper deptMapper;
+public class SysDeptServiceImpl implements SysDeptService {
 
-    @Autowired
-    private SysRoleMapper roleMapper;
+    @Resource
+    private SysDeptRepository sysDeptRepository;
+    @Resource
+    private SysDeptMapper sysDeptMapper;
 
     /**
-     * 查询部门管理数据
-     *
-     * @param dept 部门信息
-     * @return 部门信息集合
+     * 根据条件查询部门列表
      */
     @Override
-    @DataScope(deptAlias = "d")
-    public List<SysDept> selectDeptList(SysDept dept) {
-        return deptMapper.selectDeptList(dept);
+    public Flux<SysDeptVO> selectDeptList(SysDeptQuery query) {
+        return sysDeptRepository.selectListByQuery(query)
+                .map(sysDeptMapper::toVo);
     }
 
     /**
-     * 查询部门树结构信息
-     *
-     * @param dept 部门信息
-     * @return 部门树信息集合
+     * 查询部门列表（排除节点）
      */
     @Override
-    public List<TreeSelect> selectDeptTreeList(SysDept dept) {
-        List<SysDept> depts = SpringUtils.getAopProxy(this).selectDeptList(dept);
-        return buildDeptTreeSelect(depts);
+    public Flux<SysDeptVO> selectDeptListExclude(Long deptId) {
+        return sysDeptRepository.selectListByQuery(new SysDeptQuery())
+                .filter(d -> {
+                    if (Objects.equals(deptId, d.getDeptId())) {
+                        return false;
+                    }
+                    Set<String> set = org.springframework.util.StringUtils.commaDelimitedListToSet(d.getAncestors());
+                    return BooleanUtils.isFalse(set.contains(deptId + ""));
+                })
+                .map(sysDeptMapper::toVo);
     }
 
     /**
-     * 构建前端所需要树结构
-     *
-     * @param depts 部门列表
-     * @return 树结构列表
+     * 根据部门ID查询详细信息
      */
     @Override
-    public List<SysDept> buildDeptTree(List<SysDept> depts) {
-        List<SysDept> returnList = new ArrayList<SysDept>();
-        List<Long> tempList = depts.stream().map(SysDept::getDeptId).collect(Collectors.toList());
-        for (SysDept dept : depts) {
-            // 如果是顶级节点, 遍历该父节点的所有子节点
-            if (!tempList.contains(dept.getParentId())) {
-                recursionFn(depts, dept);
-                returnList.add(dept);
-            }
-        }
-        if (returnList.isEmpty()) {
-            returnList = depts;
-        }
-        return returnList;
-    }
-
-    /**
-     * 构建前端所需要下拉树结构
-     *
-     * @param depts 部门列表
-     * @return 下拉树结构列表
-     */
-    @Override
-    public List<TreeSelect> buildDeptTreeSelect(List<SysDept> depts) {
-        List<SysDept> deptTrees = buildDeptTree(depts);
-        return deptTrees.stream().map(TreeSelect::new).collect(Collectors.toList());
-    }
-
-    /**
-     * 根据角色ID查询部门树信息
-     *
-     * @param roleId 角色ID
-     * @return 选中部门列表
-     */
-    @Override
-    public List<Long> selectDeptListByRoleId(Long roleId) {
-        SysRole role = roleMapper.selectRoleById(roleId);
-        return deptMapper.selectDeptListByRoleId(roleId, role.isDeptCheckStrictly());
-    }
-
-    /**
-     * 根据部门ID查询信息
-     *
-     * @param deptId 部门ID
-     * @return 部门信息
-     */
-    @Override
-    public SysDept selectDeptById(Long deptId) {
-        return deptMapper.selectDeptById(deptId);
-    }
-
-    /**
-     * 根据ID查询所有子部门（正常状态）
-     *
-     * @param deptId 部门ID
-     * @return 子部门数
-     */
-    @Override
-    public int selectNormalChildrenDeptById(Long deptId) {
-        return deptMapper.selectNormalChildrenDeptById(deptId);
-    }
-
-    /**
-     * 是否存在子节点
-     *
-     * @param deptId 部门ID
-     * @return 结果
-     */
-    @Override
-    public boolean hasChildByDeptId(Long deptId) {
-        int result = deptMapper.hasChildByDeptId(deptId);
-        return result > 0;
-    }
-
-    /**
-     * 查询部门是否存在用户
-     *
-     * @param deptId 部门ID
-     * @return 结果 true 存在 false 不存在
-     */
-    @Override
-    public boolean checkDeptExistUser(Long deptId) {
-        int result = deptMapper.checkDeptExistUser(deptId);
-        return result > 0;
-    }
-
-    /**
-     * 校验部门名称是否唯一
-     *
-     * @param dept 部门信息
-     * @return 结果
-     */
-    @Override
-    public boolean checkDeptNameUnique(SysDept dept) {
-        Long deptId = StringUtils.isNull(dept.getDeptId()) ? -1L : dept.getDeptId();
-        SysDept info = deptMapper.checkDeptNameUnique(dept.getDeptName(), dept.getParentId());
-        if (StringUtils.isNotNull(info) && info.getDeptId().longValue() != deptId.longValue()) {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
+    public Mono<SysDeptVO> selectDeptById(Long deptId) {
+        return Mono.fromRunnable(() -> this.checkDeptDataScope(deptId))
+                .then(sysDeptRepository.selectOneByDeptId(deptId))
+                .switchIfEmpty(ServiceException.monoInstance("部门不存在"))
+                .map(sysDeptMapper::toVo);
     }
 
     /**
      * 校验部门是否有数据权限
-     *
-     * @param deptId 部门id
      */
     @Override
     public void checkDeptDataScope(Long deptId) {
         if (!SysUser.isAdmin(SecurityUtils.getUserId()) && StringUtils.isNotNull(deptId)) {
-            SysDept dept = new SysDept();
-            dept.setDeptId(deptId);
-            List<SysDept> depts = SpringUtils.getAopProxy(this).selectDeptList(dept);
-            if (StringUtils.isEmpty(depts)) {
-                throw new ServiceException("没有权限访问部门数据！");
-            }
+            SysDeptQuery query = new SysDeptQuery();
+            query.setDeptId(deptId);
+            sysDeptRepository.selectListByQuery(query)
+                    .hasElements()
+                    .flatMap(hasElements -> {
+                        if (BooleanUtils.isFalse(hasElements)) {
+                            return ServiceException.monoInstance("没有权限访问部门数据");
+                        }
+                        return Mono.empty();
+                    })
+                    .subscribe();
         }
     }
 
     /**
-     * 新增保存部门信息
-     *
-     * @param dept 部门信息
-     * @return 结果
+     * 新增部门
      */
     @Override
-    public int insertDept(SysDept dept) {
-        SysDept info = deptMapper.selectDeptById(dept.getParentId());
-        // 如果父节点不为正常状态,则不允许新增子节点
-        if (!UserConstants.DEPT_NORMAL.equals(info.getStatus())) {
-            throw new ServiceException("部门停用，不允许新增");
-        }
-        dept.setAncestors(info.getAncestors() + "," + dept.getParentId());
-        return deptMapper.insertDept(dept);
+    public Mono<Void> insertDept(SysDeptInsertDTO dto) {
+        SysDept entity = sysDeptMapper.toEntity(dto);
+
+        return checkDeptNameUnique(entity)
+                .then(sysDeptRepository.selectOneByDeptId(entity.getParentId()))
+                .switchIfEmpty(ServiceException.monoInstance("上级部门不存在"))
+                .flatMap(parent -> {
+                    if (ObjectUtils.notEqual(parent.getStatus(), UserConstants.DEPT_NORMAL)) {
+                        return ServiceException.monoInstance("上级部门已停用");
+                    }
+
+                    entity.setAncestors(parent.getAncestors() + "," + parent.getDeptId());
+                    return sysDeptRepository.insertDept(entity);
+                })
+                .then();
     }
 
     /**
-     * 修改保存部门信息
-     *
-     * @param dept 部门信息
-     * @return 结果
+     * 检查部门名称是否唯一
+     */
+    private Mono<Void> checkDeptNameUnique(SysDept dept) {
+        return sysDeptRepository.selectOneByParentIdAndDeptName(dept.getParentId(), dept.getDeptName())
+                .flatMap(info -> {
+                    if (ObjectUtils.notEqual(info.getDeptId(), dept.getDeptId())) {
+                        return ServiceException.monoInstance("部门名称已存在");
+                    }
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    /**
+     * 修改部门
      */
     @Override
-    public int updateDept(SysDept dept) {
-        SysDept newParentDept = deptMapper.selectDeptById(dept.getParentId());
-        SysDept oldDept = deptMapper.selectDeptById(dept.getDeptId());
-        if (StringUtils.isNotNull(newParentDept) && StringUtils.isNotNull(oldDept)) {
-            String newAncestors = newParentDept.getAncestors() + "," + newParentDept.getDeptId();
-            String oldAncestors = oldDept.getAncestors();
-            dept.setAncestors(newAncestors);
-            updateDeptChildren(dept.getDeptId(), newAncestors, oldAncestors);
-        }
-        int result = deptMapper.updateDept(dept);
-        if (UserConstants.DEPT_NORMAL.equals(dept.getStatus()) && StringUtils.isNotEmpty(dept.getAncestors())
-                && !StringUtils.equals("0", dept.getAncestors())) {
-            // 如果该部门是启用状态，则启用该部门的所有上级部门
-            updateParentDeptStatusNormal(dept);
-        }
-        return result;
+    public Mono<Void> updateDept(SysDeptUpdateDTO dto) {
+        SysDept entity = sysDeptMapper.toEntity(dto);
+
+        return Mono.fromRunnable(() -> this.checkDeptDataScope(dto.getDeptId()))
+                .then(checkDeptNameUnique(entity))
+                .then(Mono.defer(() -> {
+                    if (Objects.equals(dto.getDeptId(), dto.getParentId())) {
+                        return ServiceException.monoInstance("上级部门不能是自己");
+                    }
+                    if (Objects.equals(dto.getStatus(), UserConstants.DEPT_DISABLE)) {
+                        return sysDeptRepository.selectNormalChildrenDeptById(dto.getDeptId())
+                                .flatMap(count -> {
+                                    if (count > 0) {
+                                        return ServiceException.monoInstance("包含未停用的子部门");
+                                    }
+                                    return Mono.empty();
+                                });
+                    }
+                    return Mono.empty();
+                }))
+                .then(sysDeptRepository.selectOneByDeptId(dto.getDeptId()).switchIfEmpty(ServiceException.monoInstance("部门不存在")))
+                .zipWith(sysDeptRepository.selectOneByDeptId(dto.getParentId()).switchIfEmpty(ServiceException.monoInstance("上级部门不存在")))
+                .flatMap(tuple -> {
+                    SysDept dept = tuple.getT1();
+                    SysDept parent = tuple.getT2();
+
+                    String newAncestors = parent.getAncestors() + "," + parent.getDeptId();
+                    String oldAncestors = dept.getAncestors();
+                    entity.setAncestors(newAncestors);
+                    return sysDeptRepository.updateDept(entity)
+                            .then(updateDeptParent(entity))
+                            .then(updateDeptChildren(dto.getDeptId(), newAncestors, oldAncestors));
+                })
+                .then();
     }
 
     /**
-     * 修改该部门的父级部门状态
-     *
-     * @param dept 当前部门
+     * 修改上级部门
      */
-    private void updateParentDeptStatusNormal(SysDept dept) {
-        String ancestors = dept.getAncestors();
-        Long[] deptIds = Convert.toLongArray(ancestors);
-        deptMapper.updateDeptStatusNormal(deptIds);
+    private Mono<Long> updateDeptParent(SysDept dept) {
+        if (UserConstants.DEPT_NORMAL.equals(dept.getStatus())) {
+            String ancestors = dept.getAncestors();
+            Long[] deptIds = Convert.toLongArray(ancestors);
+            return sysDeptRepository.updateDeptStatusNormal(deptIds);
+        }
+        return Mono.empty();
     }
 
     /**
-     * 修改子元素关系
-     *
-     * @param deptId       被修改的部门ID
-     * @param newAncestors 新的父ID集合
-     * @param oldAncestors 旧的父ID集合
+     * 修改下级部门
      */
-    public void updateDeptChildren(Long deptId, String newAncestors, String oldAncestors) {
-        List<SysDept> children = deptMapper.selectChildrenDeptById(deptId);
-        for (SysDept child : children) {
-            child.setAncestors(child.getAncestors().replaceFirst(oldAncestors, newAncestors));
-        }
-        if (children.size() > 0) {
-            deptMapper.updateDeptChildren(children);
-        }
+    public Mono<Long> updateDeptChildren(Long deptId, String newAncestors, String oldAncestors) {
+        return sysDeptRepository.selectChildrenByDeptId(deptId)
+                .collectList()
+                .flatMap(children -> {
+                    if (CollectionUtils.isEmpty(children)) {
+                        return Mono.empty();
+                    }
+                    for (SysDept child : children) {
+                        child.setAncestors(child.getAncestors().replaceFirst(oldAncestors, newAncestors));
+                    }
+                    return sysDeptRepository.updateDeptChildren(children);
+                });
     }
 
     /**
-     * 删除部门管理信息
-     *
-     * @param deptId 部门ID
-     * @return 结果
+     * 删除部门
      */
     @Override
-    public int deleteDeptById(Long deptId) {
-        return deptMapper.deleteDeptById(deptId);
+    public Mono<Void> deleteDeptById(Long deptId) {
+        return Mono.fromRunnable(() -> this.checkDeptDataScope(deptId))
+                .then(sysDeptRepository.existsChildByDeptId(deptId)
+                        .flatMap(existsChild -> {
+                            if (existsChild) {
+                                return ServiceException.monoInstance("部门存在下级，不允许删除");
+                            }
+                            return Mono.empty();
+                        })
+                )
+                .then(sysDeptRepository.existsUserByDeptId(deptId)
+                        .flatMap(existsUser -> {
+                            if (existsUser) {
+                                return ServiceException.monoInstance("部门存在用户，不允许删除");
+                            }
+                            return Mono.empty();
+                        })
+                )
+                .then(sysDeptRepository.deleteByDeptId(deptId))
+                .then();
     }
 
-    /**
-     * 递归列表
-     */
-    private void recursionFn(List<SysDept> list, SysDept t) {
-        // 得到子节点列表
-        List<SysDept> childList = getChildList(list, t);
-        t.setChildren(childList);
-        for (SysDept tChild : childList) {
-            if (hasChild(list, tChild)) {
-                recursionFn(list, tChild);
-            }
-        }
-    }
-
-    /**
-     * 得到子节点列表
-     */
-    private List<SysDept> getChildList(List<SysDept> list, SysDept t) {
-        List<SysDept> tlist = new ArrayList<SysDept>();
-        Iterator<SysDept> it = list.iterator();
-        while (it.hasNext()) {
-            SysDept n = (SysDept) it.next();
-            if (StringUtils.isNotNull(n.getParentId()) && n.getParentId().longValue() == t.getDeptId().longValue()) {
-                tlist.add(n);
-            }
-        }
-        return tlist;
-    }
-
-    /**
-     * 判断是否有子节点
-     */
-    private boolean hasChild(List<SysDept> list, SysDept t) {
-        return getChildList(list, t).size() > 0 ? true : false;
-    }
 }
