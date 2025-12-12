@@ -330,8 +330,7 @@
                     <jdbcPassword>password</jdbcPassword>
                     <packageName>org.huanzhang.project.system.entity</packageName>
                     <catalogPattern>ry-vue</catalogPattern>
-                    <targetFolder>${project.basedir}/src/main/java</targetFolder>
-                    <exportBeans>true</exportBeans>
+                    <targetFolder>${project.basedir}/target/generated-sources/java</targetFolder>
                     <customTypes>
                         <customType>com.querydsl.sql.types.LocalDateTimeType</customType>
                         <customType>com.querydsl.sql.types.LocalDateType</customType>

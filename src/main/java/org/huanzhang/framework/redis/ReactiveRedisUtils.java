@@ -7,6 +7,11 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
 @Component
 public class ReactiveRedisUtils<T> {
 
@@ -50,6 +55,24 @@ public class ReactiveRedisUtils<T> {
     public Mono<Void> setCacheObject(final String key, final T value) {
         redisTemplate.opsForValue().set(key, value);
         return Mono.empty();
+    }
+
+    /**
+     * 缓存list数据
+     */
+    public Flux<Void> setCacheList(String key, Collection<T> values, Duration duration) {
+        redisTemplate.opsForList().rightPushAll(key, values);
+        redisTemplate.expire(key, duration);
+        return Flux.empty();
+    }
+
+    /**
+     * 获取缓存的list数据
+     */
+    public Flux<T> getCacheList(String key) {
+        List<T> list = redisTemplate.opsForList().range(key, 0, -1);
+        if (Objects.isNull(list)) return Flux.empty();
+        return Flux.fromIterable(list);
     }
 
 }
