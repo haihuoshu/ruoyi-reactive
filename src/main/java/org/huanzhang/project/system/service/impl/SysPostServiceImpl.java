@@ -1,163 +1,149 @@
 package org.huanzhang.project.system.service.impl;
 
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
+import org.huanzhang.common.exception.ServiceException;
+import org.huanzhang.project.system.converter.SysPostMapper;
+import org.huanzhang.project.system.dto.SysPostInsertDTO;
+import org.huanzhang.project.system.dto.SysPostUpdateDTO;
+import org.huanzhang.project.system.entity.SysPost;
+import org.huanzhang.project.system.query.SysPostQuery;
+import org.huanzhang.project.system.repository.SysPostRepository;
+import org.huanzhang.project.system.repository.SysUserPostRepository;
+import org.huanzhang.project.system.service.SysPostService;
+import org.huanzhang.project.system.vo.SysPostVO;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.huanzhang.common.constant.UserConstants;
-import org.huanzhang.common.exception.ServiceException;
-import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.project.system.domain.SysPost;
-import org.huanzhang.project.system.mapper.SysPostMapper;
-import org.huanzhang.project.system.mapper.SysUserPostMapper;
-import org.huanzhang.project.system.service.ISysPostService;
-
 /**
- * 岗位信息 服务层处理
+ * 岗位表 业务处理
  *
- * @author ruoyi
+ * @author haihuoshu
+ * @version 2025-12-15
  */
 @Service
-public class SysPostServiceImpl implements ISysPostService {
-    @Autowired
-    private SysPostMapper postMapper;
+@RequiredArgsConstructor
+public class SysPostServiceImpl implements SysPostService {
 
-    @Autowired
-    private SysUserPostMapper userPostMapper;
+    private final SysPostRepository sysPostRepository;
+    private final SysPostMapper sysPostMapper;
+
+    private final SysUserPostRepository sysUserPostRepository;
 
     /**
-     * 查询岗位信息集合
-     *
-     * @param post 岗位信息
-     * @return 岗位信息集合
+     * 根据条件查询岗位总数
      */
     @Override
-    public List<SysPost> selectPostList(SysPost post) {
-        return postMapper.selectPostList(post);
+    public Mono<Long> selectPostCountByQuery(SysPostQuery query) {
+        return sysPostRepository.selectCountByQuery(query);
+    }
+
+    /**
+     * 根据条件查询岗位列表
+     */
+    @Override
+    public Flux<SysPostVO> selectPostListByQuery(SysPostQuery query) {
+        return sysPostRepository.selectListByQuery(query)
+                .map(sysPostMapper::toVo);
+    }
+
+    /**
+     * 根据岗位ID查询详细信息
+     */
+    @Override
+    public Mono<SysPostVO> selectPostById(Long postId) {
+        return sysPostRepository.selectOneById(postId)
+                .switchIfEmpty(ServiceException.monoInstance("岗位不存在"))
+                .map(sysPostMapper::toVo);
+    }
+
+    /**
+     * 新增岗位
+     */
+    @Override
+    public Mono<Void> insertPost(SysPostInsertDTO dto) {
+        SysPost entity = sysPostMapper.toEntity(dto);
+
+        return checkPostNameUnique(entity)
+                .then(checkPostCodeUnique(entity))
+                .then(sysPostRepository.insert(entity))
+                .then();
+    }
+
+    /**
+     * 检查岗位名称是否唯一
+     */
+    public Mono<Void> checkPostNameUnique(SysPost post) {
+        return sysPostRepository.selectOneByPostName(post.getPostName())
+                .flatMap(info -> {
+                    if (ObjectUtils.notEqual(info.getPostId(), post.getPostId())) {
+                        return ServiceException.monoInstance("岗位名称已存在");
+                    }
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    /**
+     * 检查岗位编码是否唯一
+     */
+    public Mono<Void> checkPostCodeUnique(SysPost post) {
+        return sysPostRepository.selectOneByPostCode(post.getPostCode())
+                .flatMap(info -> {
+                    if (ObjectUtils.notEqual(info.getPostId(), post.getPostId())) {
+                        return ServiceException.monoInstance("岗位编码已存在");
+                    }
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    /**
+     * 修改岗位
+     */
+    @Override
+    public Mono<Void> updatePost(SysPostUpdateDTO dto) {
+        SysPost entity = sysPostMapper.toEntity(dto);
+
+        return checkPostNameUnique(entity)
+                .then(checkPostCodeUnique(entity))
+                .then(sysPostRepository.updateById(entity))
+                .then();
+    }
+
+    /**
+     * 批量删除岗位
+     */
+    @Override
+    public Mono<Void> deletePostByIds(List<Long> postIds) {
+        return sysPostRepository.selectListByIds(postIds)
+                .flatMap(this::checkPostAllocated)
+                .then(sysPostRepository.deleteByIds(postIds))
+                .then();
+    }
+
+    /**
+     * 检查岗位是否已分配
+     */
+    private Mono<Void> checkPostAllocated(SysPost post) {
+        return sysUserPostRepository.selectCountByPostId(post.getPostId())
+                .flatMap(count -> {
+                    if (count > 0) {
+                        return ServiceException.monoInstance(String.format("%1$s已分配，不能删除", post.getPostName()));
+                    }
+                    return Mono.empty();
+                });
     }
 
     /**
      * 查询所有岗位
-     *
-     * @return 岗位列表
      */
     @Override
-    public List<SysPost> selectPostAll() {
-        return postMapper.selectPostAll();
-    }
-
-    /**
-     * 通过岗位ID查询岗位信息
-     *
-     * @param postId 岗位ID
-     * @return 角色对象信息
-     */
-    @Override
-    public SysPost selectPostById(Long postId) {
-        return postMapper.selectPostById(postId);
-    }
-
-    /**
-     * 根据用户ID获取岗位选择框列表
-     *
-     * @param userId 用户ID
-     * @return 选中岗位ID列表
-     */
-    @Override
-    public List<Long> selectPostListByUserId(Long userId) {
-        return postMapper.selectPostListByUserId(userId);
-    }
-
-    /**
-     * 校验岗位名称是否唯一
-     *
-     * @param post 岗位信息
-     * @return 结果
-     */
-    @Override
-    public boolean checkPostNameUnique(SysPost post) {
-        Long postId = StringUtils.isNull(post.getPostId()) ? -1L : post.getPostId();
-        SysPost info = postMapper.checkPostNameUnique(post.getPostName());
-        if (StringUtils.isNotNull(info) && info.getPostId().longValue() != postId.longValue()) {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
-    }
-
-    /**
-     * 校验岗位编码是否唯一
-     *
-     * @param post 岗位信息
-     * @return 结果
-     */
-    @Override
-    public boolean checkPostCodeUnique(SysPost post) {
-        Long postId = StringUtils.isNull(post.getPostId()) ? -1L : post.getPostId();
-        SysPost info = postMapper.checkPostCodeUnique(post.getPostCode());
-        if (StringUtils.isNotNull(info) && info.getPostId().longValue() != postId.longValue()) {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
-    }
-
-    /**
-     * 通过岗位ID查询岗位使用数量
-     *
-     * @param postId 岗位ID
-     * @return 结果
-     */
-    @Override
-    public int countUserPostById(Long postId) {
-        return userPostMapper.countUserPostById(postId);
-    }
-
-    /**
-     * 删除岗位信息
-     *
-     * @param postId 岗位ID
-     * @return 结果
-     */
-    @Override
-    public int deletePostById(Long postId) {
-        return postMapper.deletePostById(postId);
-    }
-
-    /**
-     * 批量删除岗位信息
-     *
-     * @param postIds 需要删除的岗位ID
-     * @return 结果
-     */
-    @Override
-    public int deletePostByIds(Long[] postIds) {
-        for (Long postId : postIds) {
-            SysPost post = selectPostById(postId);
-            if (countUserPostById(postId) > 0) {
-                throw new ServiceException(String.format("%1$s已分配,不能删除", post.getPostName()));
-            }
-        }
-        return postMapper.deletePostByIds(postIds);
-    }
-
-    /**
-     * 新增保存岗位信息
-     *
-     * @param post 岗位信息
-     * @return 结果
-     */
-    @Override
-    public int insertPost(SysPost post) {
-        return postMapper.insertPost(post);
-    }
-
-    /**
-     * 修改保存岗位信息
-     *
-     * @param post 岗位信息
-     * @return 结果
-     */
-    @Override
-    public int updatePost(SysPost post) {
-        return postMapper.updatePost(post);
+    public Flux<SysPostVO> selectPostAll() {
+        return sysPostRepository.selectListByQuery(new SysPostQuery())
+                .map(sysPostMapper::toVo);
     }
 }

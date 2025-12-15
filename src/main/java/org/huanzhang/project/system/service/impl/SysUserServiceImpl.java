@@ -10,8 +10,14 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.bean.BeanValidators;
 import org.huanzhang.common.utils.spring.SpringUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
-import org.huanzhang.project.system.domain.*;
-import org.huanzhang.project.system.mapper.*;
+import org.huanzhang.project.system.domain.SysRole;
+import org.huanzhang.project.system.domain.SysUser;
+import org.huanzhang.project.system.domain.SysUserRole;
+import org.huanzhang.project.system.entity.SysUserPost;
+import org.huanzhang.project.system.mapper.SysRoleMapper;
+import org.huanzhang.project.system.mapper.SysUserMapper;
+import org.huanzhang.project.system.mapper.SysUserPostMapper;
+import org.huanzhang.project.system.mapper.SysUserRoleMapper;
 import org.huanzhang.project.system.service.ISysUserService;
 import org.huanzhang.project.system.service.SysConfigService;
 import org.huanzhang.project.system.service.SysDeptService;
@@ -39,9 +45,6 @@ public class SysUserServiceImpl implements ISysUserService {
 
     @Resource
     private SysRoleMapper roleMapper;
-
-    @Resource
-    private SysPostMapper postMapper;
 
     @Resource
     private SysUserRoleMapper userRoleMapper;
@@ -139,11 +142,11 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     public String selectUserPostGroup(String userName) {
-        List<SysPost> list = postMapper.selectPostsByUserName(userName);
-        if (CollectionUtils.isEmpty(list)) {
+//        List<SysPost> list = postMapper.selectPostsByUserName(userName);
+//        if (CollectionUtils.isEmpty(list)) {
             return StringUtils.EMPTY;
-        }
-        return list.stream().map(SysPost::getPostName).collect(Collectors.joining(","));
+//        }
+//        return list.stream().map(SysPost::getPostName).collect(Collectors.joining(","));
     }
 
     /**

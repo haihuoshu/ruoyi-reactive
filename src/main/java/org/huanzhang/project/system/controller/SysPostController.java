@@ -1,109 +1,104 @@
 package org.huanzhang.project.system.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.utils.poi.ExcelUtil;
 import org.huanzhang.framework.aspectj.lang.annotation.Log;
 import org.huanzhang.framework.aspectj.lang.enums.BusinessType;
 import org.huanzhang.framework.web.controller.BaseController;
-import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.framework.web.page.TableDataInfo;
-import org.huanzhang.project.system.domain.SysPost;
-import org.huanzhang.project.system.service.ISysPostService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.huanzhang.framework.web.domain.AjaxResponse;
+import org.huanzhang.framework.web.domain.ListResponse;
+import org.huanzhang.framework.web.domain.PageResponse;
+import org.huanzhang.project.system.dto.SysPostInsertDTO;
+import org.huanzhang.project.system.dto.SysPostUpdateDTO;
+import org.huanzhang.project.system.query.SysPostQuery;
+import org.huanzhang.project.system.service.SysPostService;
+import org.huanzhang.project.system.vo.SysPostVO;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-/**
- * 岗位信息操作处理
- *
- * @author ruoyi
- */
+@Tag(name = "岗位管理")
+@Validated
 @RestController
 @RequestMapping("/system/post")
+@RequiredArgsConstructor
 public class SysPostController extends BaseController {
-    @Autowired
-    private ISysPostService postService;
 
-    /**
-     * 获取岗位列表
-     */
-    @PreAuthorize("@ss.hasPermi('system:post:list')")
+    private final SysPostService sysPostService;
+
+    @Operation(summary = "根据条件分页查询岗位列表")
+    @PreAuthorize("hasAuthority('system:post:list')")
     @GetMapping("/list")
-    public TableDataInfo list(SysPost post) {
-        startPage();
-        List<SysPost> list = postService.selectPostList(post);
-        return getDataTable(list);
+    public Mono<PageResponse<SysPostVO>> list(@ParameterObject @Valid SysPostQuery query) {
+        Mono<Long> count = sysPostService.selectPostCountByQuery(query);
+
+        Mono<List<SysPostVO>> list = sysPostService.selectPostListByQuery(query).collectList();
+
+        return Mono.zip(list, count).map(tuple -> PageResponse.getInstance(tuple.getT1(), tuple.getT2()));
     }
 
+    @Operation(summary = "根据条件导出岗位列表")
     @Log(title = "岗位管理", businessType = BusinessType.EXPORT)
-    @PreAuthorize("@ss.hasPermi('system:post:export')")
+    @PreAuthorize("hasAuthority('system:post:export')")
     @PostMapping("/export")
-    public void export(HttpServletResponse response, SysPost post) {
-        List<SysPost> list = postService.selectPostList(post);
-        ExcelUtil<SysPost> util = new ExcelUtil<SysPost>(SysPost.class);
-        util.exportExcel(response, list, "岗位数据");
+    public void export(HttpServletResponse response, @ParameterObject SysPostQuery query) {
+        sysPostService.selectPostListByQuery(query)
+                .collectList()
+                .subscribe(list -> {
+                    ExcelUtil<SysPostVO> util = new ExcelUtil<>(SysPostVO.class);
+                    util.exportExcel(response, list, "岗位数据");
+                });
     }
 
-    /**
-     * 根据岗位编号获取详细信息
-     */
-    @PreAuthorize("@ss.hasPermi('system:post:query')")
+    @Operation(summary = "根据岗位ID查询详细信息")
+    @PreAuthorize("hasAuthority('system:post:query')")
     @GetMapping(value = "/{postId}")
-    public AjaxResult getInfo(@PathVariable Long postId) {
-        return success(postService.selectPostById(postId));
+    public Mono<AjaxResponse<SysPostVO>> getInfo(@PathVariable Long postId) {
+        return sysPostService.selectPostById(postId)
+                .map(AjaxResponse::ok);
     }
 
-    /**
-     * 新增岗位
-     */
-    @PreAuthorize("@ss.hasPermi('system:post:add')")
+    @Operation(summary = "新增岗位")
     @Log(title = "岗位管理", businessType = BusinessType.INSERT)
+    @PreAuthorize("hasAuthority('system:post:add')")
     @PostMapping
-    public AjaxResult add(@Validated @RequestBody SysPost post) {
-        if (!postService.checkPostNameUnique(post)) {
-            return error("新增岗位'" + post.getPostName() + "'失败，岗位名称已存在");
-        } else if (!postService.checkPostCodeUnique(post)) {
-            return error("新增岗位'" + post.getPostName() + "'失败，岗位编码已存在");
-        }
-        post.setCreateBy(getUsername());
-        return toAjax(postService.insertPost(post));
+    public Mono<AjaxResponse<Void>> add(@RequestBody @Valid SysPostInsertDTO dto) {
+        return sysPostService.insertPost(dto)
+                .thenReturn(AjaxResponse.ok());
     }
 
-    /**
-     * 修改岗位
-     */
-    @PreAuthorize("@ss.hasPermi('system:post:edit')")
+    @Operation(summary = "修改岗位")
     @Log(title = "岗位管理", businessType = BusinessType.UPDATE)
+    @PreAuthorize("hasAuthority('system:post:edit')")
     @PutMapping
-    public AjaxResult edit(@Validated @RequestBody SysPost post) {
-        if (!postService.checkPostNameUnique(post)) {
-            return error("修改岗位'" + post.getPostName() + "'失败，岗位名称已存在");
-        } else if (!postService.checkPostCodeUnique(post)) {
-            return error("修改岗位'" + post.getPostName() + "'失败，岗位编码已存在");
-        }
-        post.setUpdateBy(getUsername());
-        return toAjax(postService.updatePost(post));
+    public Mono<AjaxResponse<Void>> edit(@RequestBody @Valid SysPostUpdateDTO dto) {
+        return sysPostService.updatePost(dto)
+                .thenReturn(AjaxResponse.ok());
     }
 
-    /**
-     * 删除岗位
-     */
-    @PreAuthorize("@ss.hasPermi('system:post:remove')")
+    @Operation(summary = "批量删除岗位")
+    @PreAuthorize("hasAuthority('system:post:remove')")
     @Log(title = "岗位管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{postIds}")
-    public AjaxResult remove(@PathVariable Long[] postIds) {
-        return toAjax(postService.deletePostByIds(postIds));
+    public Mono<AjaxResponse<Void>> remove(@PathVariable List<Long> postIds) {
+        return sysPostService.deletePostByIds(postIds)
+                .thenReturn(AjaxResponse.ok());
     }
 
-    /**
-     * 获取岗位选择框列表
-     */
+    @Operation(summary = "查询所有岗位")
     @GetMapping("/optionselect")
-    public AjaxResult optionselect() {
-        List<SysPost> posts = postService.selectPostAll();
-        return success(posts);
+    public Mono<ListResponse<SysPostVO>> optionselect() {
+        return sysPostService.selectPostAll()
+                .collectList()
+                .map(ListResponse::getInstance);
     }
+
 }

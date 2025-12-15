@@ -93,7 +93,7 @@ public class SysNoticeRepositoryImpl implements SysNoticeRepository {
                 .flatMap(entity -> {
                     // 执行新增
                     return queryFactory.insert(tb_1_)
-                            .populate(notice)
+                            .populate(entity)
                             .execute();
                 });
     }
