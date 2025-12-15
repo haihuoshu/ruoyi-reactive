@@ -1,11 +1,7 @@
 package org.huanzhang.framework.security.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.huanzhang.common.enums.UserStatus;
 import org.huanzhang.common.exception.ServiceException;
 import org.huanzhang.common.utils.MessageUtils;
@@ -13,27 +9,30 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.service.ISysUserService;
+import org.huanzhang.project.system.service.SysMenuService;
+import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 /**
  * 用户验证处理
  *
  * @author ruoyi
  */
+@Slf4j
 @Service
-public class UserDetailsServiceImpl implements UserDetailsService {
-    private static final Logger log = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
+@RequiredArgsConstructor
+public class UserDetailsServiceImpl implements ReactiveUserDetailsService {
 
-    @Autowired
-    private ISysUserService userService;
+    private final ISysUserService userService;
 
-    @Autowired
-    private SysPasswordService passwordService;
+    private final SysPasswordService passwordService;
 
-    @Autowired
-    private SysPermissionService permissionService;
+    private final SysMenuService sysMenuService;
 
     @Override
-    public UserDetails loadUserByUsername(String username) {
+    public Mono<UserDetails> findByUsername(String username) {
         SysUser user = userService.selectUserByUserName(username);
         if (StringUtils.isNull(user)) {
             log.info("登录用户：{} 不存在.", username);
@@ -51,7 +50,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return createLoginUser(user);
     }
 
-    public UserDetails createLoginUser(SysUser user) {
-        return new LoginUser(user.getUserId(), user.getDeptId(), user, permissionService.getMenuPermission(user));
+    public Mono<UserDetails> createLoginUser(SysUser user) {
+        return sysMenuService.selectMenuPermsByUserId(user.getUserId())
+                .map(permissions -> {
+                    // 登录用户
+                    return new LoginUser(user.getUserId(), user.getDeptId(), user, permissions);
+                });
     }
+
 }

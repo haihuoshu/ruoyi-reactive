@@ -1,13 +1,10 @@
 package org.huanzhang.project.system.controller;
 
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
-import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.poi.ExcelUtil;
 import org.huanzhang.framework.aspectj.lang.annotation.Log;
 import org.huanzhang.framework.aspectj.lang.enums.BusinessType;
-import org.huanzhang.framework.security.LoginUser;
-import org.huanzhang.framework.security.service.SysPermissionService;
-import org.huanzhang.framework.security.service.TokenService;
 import org.huanzhang.framework.web.controller.BaseController;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.framework.web.page.TableDataInfo;
@@ -16,8 +13,6 @@ import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.domain.SysUserRole;
 import org.huanzhang.project.system.service.ISysRoleService;
 import org.huanzhang.project.system.service.ISysUserService;
-import org.huanzhang.project.system.service.SysDeptService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -32,20 +27,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/system/role")
 public class SysRoleController extends BaseController {
-    @Autowired
+    @Resource
     private ISysRoleService roleService;
 
-    @Autowired
-    private TokenService tokenService;
-
-    @Autowired
-    private SysPermissionService permissionService;
-
-    @Autowired
+    @Resource
     private ISysUserService userService;
-
-    @Autowired
-    private SysDeptService deptService;
 
     @PreAuthorize("@ss.hasPermi('system:role:list')")
     @GetMapping("/list")
@@ -60,7 +46,7 @@ public class SysRoleController extends BaseController {
     @PostMapping("/export")
     public void export(HttpServletResponse response, SysRole role) {
         List<SysRole> list = roleService.selectRoleList(role);
-        ExcelUtil<SysRole> util = new ExcelUtil<SysRole>(SysRole.class);
+        ExcelUtil<SysRole> util = new ExcelUtil<>(SysRole.class);
         util.exportExcel(response, list, "角色数据");
     }
 
@@ -108,13 +94,6 @@ public class SysRoleController extends BaseController {
         role.setUpdateBy(getUsername());
 
         if (roleService.updateRole(role) > 0) {
-            // 更新缓存用户权限
-            LoginUser loginUser = getLoginUser();
-            if (StringUtils.isNotNull(loginUser.getUser()) && !loginUser.getUser().isAdmin()) {
-                loginUser.setUser(userService.selectUserByUserName(loginUser.getUser().getUserName()));
-                loginUser.setPermissions(permissionService.getMenuPermission(loginUser.getUser()));
-                tokenService.setLoginUser(loginUser);
-            }
             return success();
         }
         return error("修改角色'" + role.getRoleName() + "'失败，请联系管理员");
@@ -217,15 +196,4 @@ public class SysRoleController extends BaseController {
         return toAjax(roleService.insertAuthUsers(roleId, userIds));
     }
 
-    /**
-     * 获取对应角色部门树列表
-     */
-    @PreAuthorize("@ss.hasPermi('system:role:query')")
-    @GetMapping(value = "/deptTree/{roleId}")
-    public AjaxResult deptTree(@PathVariable("roleId") Long roleId) {
-        AjaxResult ajax = AjaxResult.success();
-//        ajax.put("checkedKeys", deptService.selectDeptListByRoleId(roleId));
-//        ajax.put("depts", deptService.selectDeptTreeList(new SysDept()));
-        return ajax;
-    }
 }

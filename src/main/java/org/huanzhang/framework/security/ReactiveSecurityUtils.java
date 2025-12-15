@@ -29,6 +29,14 @@ public class ReactiveSecurityUtils {
                 .cast(LoginUser.class);
     }
 
+    public static boolean isAdmin(Long userId) {
+        return userId != null && 1L == userId;
+    }
+
+    public static boolean isNotAdmin(Long userId) {
+        return !isAdmin(userId);
+    }
+
     /**
      * 获取用户ID
      **/

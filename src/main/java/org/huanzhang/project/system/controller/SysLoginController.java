@@ -6,21 +6,17 @@ import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginBody;
-import org.huanzhang.framework.security.LoginUser;
+import org.huanzhang.framework.security.ReactiveSecurityUtils;
 import org.huanzhang.framework.security.service.SysLoginService;
 import org.huanzhang.framework.security.service.SysPermissionService;
 import org.huanzhang.framework.security.service.TokenService;
 import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.project.system.domain.SysMenu;
 import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.domain.vo.RouterVo;
-import org.huanzhang.project.system.service.ISysMenuService;
 import org.huanzhang.project.system.service.SysConfigService;
+import org.huanzhang.project.system.service.SysMenuService;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,7 +38,7 @@ public class SysLoginController {
     private SysLoginService loginService;
 
     @Resource
-    private ISysMenuService menuService;
+    private SysMenuService menuService;
 
     @Resource
     private SysPermissionService permissionService;
@@ -60,13 +56,14 @@ public class SysLoginController {
      * @return 结果
      */
     @PostMapping("/login")
-    public AjaxResult login(@RequestBody LoginBody loginBody, ServerHttpRequest request) {
+    public Mono<AjaxResult> login(@RequestBody LoginBody loginBody, ServerHttpRequest request) {
         AjaxResult ajax = AjaxResult.success();
         // 生成令牌
-        String token = loginService.login(request, loginBody.getUsername(), loginBody.getPassword(), loginBody.getCode(),
-                loginBody.getUuid());
-        ajax.put(Constants.TOKEN, token);
-        return ajax;
+        return loginService.login(request, loginBody.getUsername(), loginBody.getPassword(), loginBody.getCode(), loginBody.getUuid())
+                .map(token -> {
+                    ajax.put(Constants.TOKEN, token);
+                    return ajax;
+                });
     }
 
     /**
@@ -76,27 +73,26 @@ public class SysLoginController {
      */
     @GetMapping("getInfo")
     public Mono<AjaxResult> getInfo() {
-        return ReactiveSecurityContextHolder.getContext()
-                .map(SecurityContext::getAuthentication)
-                .map(Authentication::getPrincipal)
-                .cast(LoginUser.class)
-                .map(loginUser -> {
+        return ReactiveSecurityUtils.getLoginUser()
+                .flatMap(loginUser -> {
                     SysUser user = loginUser.getUser();
                     // 角色集合
                     Set<String> roles = permissionService.getRolePermission(user);
                     // 权限集合
-                    Set<String> permissions = permissionService.getMenuPermission(user);
-                    if (!loginUser.getPermissions().equals(permissions)) {
-                        loginUser.setPermissions(permissions);
-                        tokenService.refreshToken(loginUser);
-                    }
-                    AjaxResult ajax = AjaxResult.success();
-                    ajax.put("user", user);
-                    ajax.put("roles", roles);
-                    ajax.put("permissions", permissions);
-                    ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
-                    ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
-                    return ajax;
+                    return menuService.selectMenuPermsByUserId(loginUser.getUserId())
+                            .map(permissions -> {
+                                if (!loginUser.getPermissions().equals(permissions)) {
+                                    loginUser.setPermissions(permissions);
+                                    tokenService.refreshToken(loginUser);
+                                }
+                                AjaxResult ajax = AjaxResult.success();
+                                ajax.put("user", user);
+                                ajax.put("roles", roles);
+                                ajax.put("permissions", permissions);
+                                ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
+                                ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
+                                return ajax;
+                            });
                 });
     }
 
@@ -107,14 +103,12 @@ public class SysLoginController {
      */
     @GetMapping("getRouters")
     public Mono<AjaxResponse<List<RouterVo>>> getRouters() {
-        return ReactiveSecurityContextHolder.getContext()
-                .map(SecurityContext::getAuthentication)
-                .map(Authentication::getPrincipal)
-                .cast(LoginUser.class)
-                .map(LoginUser::getUserId)
-                .map(userId -> {
-                    List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);
-                    return AjaxResponse.ok(menuService.buildMenus(menus));
+        return ReactiveSecurityUtils.getUserId()
+                .flatMap(userId -> {
+                    // 根据用户ID查询菜单树信息
+                    return menuService.selectMenuTreeByUserId(userId)
+                            .map(menuService::buildMenus)
+                            .map(AjaxResponse::ok);
                 });
     }
 
