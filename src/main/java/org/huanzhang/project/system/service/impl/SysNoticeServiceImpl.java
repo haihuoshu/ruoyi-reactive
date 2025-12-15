@@ -1,86 +1,92 @@
 package org.huanzhang.project.system.service.impl;
 
+import lombok.RequiredArgsConstructor;
+import org.huanzhang.common.exception.ServiceException;
+import org.huanzhang.project.system.converter.SysNoticeMapper;
+import org.huanzhang.project.system.dto.SysNoticeInsertDTO;
+import org.huanzhang.project.system.dto.SysNoticeUpdateDTO;
+import org.huanzhang.project.system.entity.SysNotice;
+import org.huanzhang.project.system.query.SysNoticeQuery;
+import org.huanzhang.project.system.repository.SysNoticeRepository;
+import org.huanzhang.project.system.service.SysNoticeService;
+import org.huanzhang.project.system.vo.SysNoticeVO;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.huanzhang.project.system.domain.SysNotice;
-import org.huanzhang.project.system.mapper.SysNoticeMapper;
-import org.huanzhang.project.system.service.ISysNoticeService;
-
 /**
- * 公告 服务层实现
+ * 通告表 业务处理
  *
- * @author ruoyi
+ * @author haihuoshu
+ * @version 2025-12-15
  */
 @Service
-public class SysNoticeServiceImpl implements ISysNoticeService {
-    @Autowired
-    private SysNoticeMapper noticeMapper;
+@RequiredArgsConstructor
+public class SysNoticeServiceImpl implements SysNoticeService {
+
+    private final SysNoticeRepository sysNoticeRepository;
+    private final SysNoticeMapper sysNoticeMapper;
 
     /**
-     * 查询公告信息
-     *
-     * @param noticeId 公告ID
-     * @return 公告信息
+     * 根据条件查询通告总数
      */
     @Override
-    public SysNotice selectNoticeById(Long noticeId) {
-        return noticeMapper.selectNoticeById(noticeId);
+    public Mono<Long> selectNoticeCountByQuery(SysNoticeQuery query) {
+        return sysNoticeRepository.selectCountByQuery(query);
     }
 
     /**
-     * 查询公告列表
-     *
-     * @param notice 公告信息
-     * @return 公告集合
+     * 根据条件查询通告列表
      */
     @Override
-    public List<SysNotice> selectNoticeList(SysNotice notice) {
-        return noticeMapper.selectNoticeList(notice);
+    public Flux<SysNoticeVO> selectNoticeListByQuery(SysNoticeQuery query) {
+        return sysNoticeRepository.selectListByQuery(query)
+                .map(sysNoticeMapper::toVo);
     }
 
     /**
-     * 新增公告
-     *
-     * @param notice 公告信息
-     * @return 结果
+     * 根据通告ID查询详细信息
      */
     @Override
-    public int insertNotice(SysNotice notice) {
-        return noticeMapper.insertNotice(notice);
+    public Mono<SysNoticeVO> selectNoticeById(Long noticeId) {
+        return sysNoticeRepository.selectOneById(noticeId)
+                .switchIfEmpty(ServiceException.monoInstance("通告不存在"))
+                .map(sysNoticeMapper::toVo);
     }
 
     /**
-     * 修改公告
-     *
-     * @param notice 公告信息
-     * @return 结果
+     * 新增通告
      */
     @Override
-    public int updateNotice(SysNotice notice) {
-        return noticeMapper.updateNotice(notice);
+    public Mono<Void> insertNotice(SysNoticeInsertDTO dto) {
+        SysNotice entity = sysNoticeMapper.toEntity(dto);
+
+        return sysNoticeRepository.insert(entity)
+                .then();
     }
 
     /**
-     * 删除公告对象
-     *
-     * @param noticeId 公告ID
-     * @return 结果
+     * 修改通告
      */
     @Override
-    public int deleteNoticeById(Long noticeId) {
-        return noticeMapper.deleteNoticeById(noticeId);
+    public Mono<Void> updateNotice(SysNoticeUpdateDTO dto) {
+        SysNotice entity = sysNoticeMapper.toEntity(dto);
+
+        return sysNoticeRepository.selectOneById(dto.getNoticeId())
+                .switchIfEmpty(ServiceException.monoInstance("通告不存在"))
+                .then(sysNoticeRepository.updateById(entity))
+                .then();
     }
 
     /**
-     * 批量删除公告信息
-     *
-     * @param noticeIds 需要删除的公告ID
-     * @return 结果
+     * 批量删除通告
      */
     @Override
-    public int deleteNoticeByIds(Long[] noticeIds) {
-        return noticeMapper.deleteNoticeByIds(noticeIds);
+    public Mono<Void> deleteNoticeByIds(List<Long> noticeIds) {
+        return sysNoticeRepository.deleteByIds(noticeIds)
+                .then();
     }
+
 }

@@ -1,86 +1,80 @@
 package org.huanzhang.project.system.controller;
 
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.huanzhang.framework.aspectj.lang.annotation.Log;
 import org.huanzhang.framework.aspectj.lang.enums.BusinessType;
 import org.huanzhang.framework.web.controller.BaseController;
-import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.framework.web.page.TableDataInfo;
-import org.huanzhang.project.system.domain.SysNotice;
-import org.huanzhang.project.system.service.ISysNoticeService;
+import org.huanzhang.framework.web.domain.AjaxResponse;
+import org.huanzhang.framework.web.domain.PageResponse;
+import org.huanzhang.project.system.dto.SysNoticeInsertDTO;
+import org.huanzhang.project.system.dto.SysNoticeUpdateDTO;
+import org.huanzhang.project.system.query.SysNoticeQuery;
+import org.huanzhang.project.system.service.SysNoticeService;
+import org.huanzhang.project.system.vo.SysNoticeVO;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
-/**
- * 公告 信息操作处理
- *
- * @author ruoyi
- */
+import java.util.List;
+
+@Tag(name = "通告管理")
+@Validated
 @RestController
 @RequestMapping("/system/notice")
+@RequiredArgsConstructor
 public class SysNoticeController extends BaseController {
-    @Autowired
-    private ISysNoticeService noticeService;
 
-    /**
-     * 获取通知公告列表
-     */
-    @PreAuthorize("@ss.hasPermi('system:notice:list')")
+    private final SysNoticeService noticeService;
+
+    @Operation(summary = "根据条件分页查询通告列表")
+    @PreAuthorize("hasAuthority('system:notice:list')")
     @GetMapping("/list")
-    public TableDataInfo list(SysNotice notice) {
-        startPage();
-        List<SysNotice> list = noticeService.selectNoticeList(notice);
-        return getDataTable(list);
+    public Mono<PageResponse<SysNoticeVO>> list(@ParameterObject @Valid SysNoticeQuery query) {
+        Mono<Long> count = noticeService.selectNoticeCountByQuery(query);
+
+        Mono<List<SysNoticeVO>> list = noticeService.selectNoticeListByQuery(query).collectList();
+
+        return Mono.zip(list, count).map(tuple -> PageResponse.getInstance(tuple.getT1(), tuple.getT2()));
     }
 
-    /**
-     * 根据通知公告编号获取详细信息
-     */
-    @PreAuthorize("@ss.hasPermi('system:notice:query')")
+    @Operation(summary = "根据通告ID查询详细信息")
+    @PreAuthorize("hasAuthority('system:notice:query')")
     @GetMapping(value = "/{noticeId}")
-    public AjaxResult getInfo(@PathVariable Long noticeId) {
-        return success(noticeService.selectNoticeById(noticeId));
+    public Mono<AjaxResponse<SysNoticeVO>> getInfo(@PathVariable Long noticeId) {
+        return noticeService.selectNoticeById(noticeId)
+                .map(AjaxResponse::ok);
     }
 
-    /**
-     * 新增通知公告
-     */
-    @PreAuthorize("@ss.hasPermi('system:notice:add')")
-    @Log(title = "通知公告", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增通告")
+    @Log(title = "通告管理", businessType = BusinessType.INSERT)
+    @PreAuthorize("hasAuthority('system:notice:add')")
     @PostMapping
-    public AjaxResult add(@Validated @RequestBody SysNotice notice) {
-        notice.setCreateBy(getUsername());
-        return toAjax(noticeService.insertNotice(notice));
+    public Mono<AjaxResponse<Void>> add(@RequestBody @Valid SysNoticeInsertDTO dto) {
+        return noticeService.insertNotice(dto)
+                .thenReturn(AjaxResponse.ok());
     }
 
-    /**
-     * 修改通知公告
-     */
-    @PreAuthorize("@ss.hasPermi('system:notice:edit')")
-    @Log(title = "通知公告", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改通告")
+    @Log(title = "通告管理", businessType = BusinessType.UPDATE)
+    @PreAuthorize("hasAuthority('system:notice:edit')")
     @PutMapping
-    public AjaxResult edit(@Validated @RequestBody SysNotice notice) {
-        notice.setUpdateBy(getUsername());
-        return toAjax(noticeService.updateNotice(notice));
+    public Mono<AjaxResponse<Void>> edit(@Validated @RequestBody SysNoticeUpdateDTO dto) {
+        return noticeService.updateNotice(dto)
+                .thenReturn(AjaxResponse.ok());
     }
 
-    /**
-     * 删除通知公告
-     */
-    @PreAuthorize("@ss.hasPermi('system:notice:remove')")
-    @Log(title = "通知公告", businessType = BusinessType.DELETE)
+    @Operation(summary = "批量删除通告")
+    @Log(title = "通告管理", businessType = BusinessType.DELETE)
+    @PreAuthorize("hasAuthority('system:notice:remove')")
     @DeleteMapping("/{noticeIds}")
-    public AjaxResult remove(@PathVariable Long[] noticeIds) {
-        return toAjax(noticeService.deleteNoticeByIds(noticeIds));
+    public Mono<AjaxResponse<Void>> remove(@PathVariable List<Long> noticeIds) {
+        return noticeService.deleteNoticeByIds(noticeIds)
+                .thenReturn(AjaxResponse.ok());
     }
+
 }
