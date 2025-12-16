@@ -8,7 +8,6 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginBody;
 import org.huanzhang.framework.security.ReactiveSecurityUtils;
 import org.huanzhang.framework.security.service.SysLoginService;
-import org.huanzhang.framework.security.service.SysPermissionService;
 import org.huanzhang.framework.security.service.TokenService;
 import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.framework.web.domain.AjaxResult;
@@ -16,6 +15,7 @@ import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.domain.vo.RouterVo;
 import org.huanzhang.project.system.service.SysConfigService;
 import org.huanzhang.project.system.service.SysMenuService;
+import org.huanzhang.project.system.service.SysRoleService;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,7 +41,7 @@ public class SysLoginController {
     private SysMenuService menuService;
 
     @Resource
-    private SysPermissionService permissionService;
+    private SysRoleService sysRoleService;
 
     @Resource
     private TokenService tokenService;
@@ -77,18 +77,20 @@ public class SysLoginController {
                 .flatMap(loginUser -> {
                     SysUser user = loginUser.getUser();
                     // 角色集合
-                    Set<String> roles = permissionService.getRolePermission(user);
+                    Mono<List<String>> roles = sysRoleService.selectRolePermissionByUserId(loginUser.getUserId()).collectList();
                     // 权限集合
-                    return menuService.selectMenuPermsByUserId(loginUser.getUserId())
-                            .map(permissions -> {
-                                if (!loginUser.getPermissions().equals(permissions)) {
-                                    loginUser.setPermissions(permissions);
+                    Mono<Set<String>> setMono = menuService.selectMenuPermsByUserId(loginUser.getUserId());
+
+                    return Mono.zip(roles, setMono)
+                            .map(tuple -> {
+                                if (!loginUser.getPermissions().equals(tuple.getT2())) {
+                                    loginUser.setPermissions(tuple.getT2());
                                     tokenService.refreshToken(loginUser);
                                 }
                                 AjaxResult ajax = AjaxResult.success();
                                 ajax.put("user", user);
-                                ajax.put("roles", roles);
-                                ajax.put("permissions", permissions);
+                                ajax.put("roles", tuple.getT1());
+                                ajax.put("permissions", tuple.getT2());
                                 ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
                                 ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
                                 return ajax;

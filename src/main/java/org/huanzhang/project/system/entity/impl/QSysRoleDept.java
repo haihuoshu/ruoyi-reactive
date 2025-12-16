@@ -3,7 +3,7 @@ package org.huanzhang.project.system.entity.impl;
 import com.querydsl.core.annotations.Generated;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.sql.ColumnMetadata;
-import org.huanzhang.project.system.entity.SysRoleMenu;
+import org.huanzhang.project.system.entity.SysRoleDept;
 
 import java.sql.Types;
 
@@ -11,25 +11,25 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 
 
 /**
- * QSysRoleMenu is a Querydsl query type for QSysRoleMenu
+ * QSysRoleDept is a Querydsl query type for QSysRoleDept
  */
 @SuppressWarnings("this-escape")
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
-public class QSysRoleMenu extends com.querydsl.sql.RelationalPathBase<SysRoleMenu> {
+public class QSysRoleDept extends com.querydsl.sql.RelationalPathBase<SysRoleDept> {
 
-    public final NumberPath<Long> menuId = createNumber("menuId", Long.class);
+    public final NumberPath<Long> deptId = createNumber("deptId", Long.class);
 
     public final NumberPath<Long> roleId = createNumber("roleId", Long.class);
 
-    public final com.querydsl.sql.PrimaryKey<SysRoleMenu> primary = createPrimaryKey(menuId, roleId);
+    public final com.querydsl.sql.PrimaryKey<SysRoleDept> primary = createPrimaryKey(deptId, roleId);
 
-    public QSysRoleMenu(String variable) {
-        super(SysRoleMenu.class, forVariable(variable), "null", "sys_role_menu");
+    public QSysRoleDept(String variable) {
+        super(SysRoleDept.class, forVariable(variable), "null", "sys_role_dept");
         addMetadata();
     }
 
     public void addMetadata() {
-        addMetadata(menuId, ColumnMetadata.named("menu_id").withIndex(2).ofType(Types.BIGINT).withSize(19).notNull());
+        addMetadata(deptId, ColumnMetadata.named("dept_id").withIndex(2).ofType(Types.BIGINT).withSize(19).notNull());
         addMetadata(roleId, ColumnMetadata.named("role_id").withIndex(1).ofType(Types.BIGINT).withSize(19).notNull());
     }
 

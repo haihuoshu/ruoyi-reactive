@@ -10,14 +10,14 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.bean.BeanValidators;
 import org.huanzhang.common.utils.spring.SpringUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
-import org.huanzhang.project.system.domain.SysRole;
 import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.domain.SysUserRole;
+import org.huanzhang.project.system.entity.SysRole;
 import org.huanzhang.project.system.entity.SysUserPost;
-import org.huanzhang.project.system.mapper.SysRoleMapper;
+import org.huanzhang.project.system.entity.SysUserRole;
 import org.huanzhang.project.system.mapper.SysUserMapper;
 import org.huanzhang.project.system.mapper.SysUserPostMapper;
-import org.huanzhang.project.system.mapper.SysUserRoleMapper;
+import org.huanzhang.project.system.repository.SysRoleRepository;
+import org.huanzhang.project.system.repository.SysUserRoleRepository;
 import org.huanzhang.project.system.service.ISysUserService;
 import org.huanzhang.project.system.service.SysConfigService;
 import org.huanzhang.project.system.service.SysDeptService;
@@ -44,10 +44,10 @@ public class SysUserServiceImpl implements ISysUserService {
     private SysUserMapper userMapper;
 
     @Resource
-    private SysRoleMapper roleMapper;
+    private SysRoleRepository roleMapper;
 
     @Resource
-    private SysUserRoleMapper userRoleMapper;
+    private SysUserRoleRepository userRoleMapper;
 
     @Resource
     private SysUserPostMapper userPostMapper;

@@ -2,9 +2,9 @@ package org.huanzhang.project.system.repository.impl;
 
 import com.querydsl.r2dbc.R2DBCQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.huanzhang.project.system.entity.SysRoleMenu;
-import org.huanzhang.project.system.entity.impl.QSysRoleMenu;
-import org.huanzhang.project.system.repository.SysRoleMenuRepository;
+import org.huanzhang.project.system.entity.SysRoleDept;
+import org.huanzhang.project.system.entity.impl.QSysRoleDept;
+import org.huanzhang.project.system.repository.SysRoleDeptRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
@@ -14,25 +14,15 @@ import java.util.List;
  * 角色与菜单关联表 数据处理
  *
  * @author haihuoshu
- * @version 2025-12-12
+ * @version 2025-12-15
  */
 @Repository
 @RequiredArgsConstructor
-public class SysRoleMenuRepositoryImpl implements SysRoleMenuRepository {
+public class SysRoleDeptRepositoryImpl implements SysRoleDeptRepository {
 
-    private static final QSysRoleMenu tb_1_ = new QSysRoleMenu("tb_1_");
+    private static final QSysRoleDept tb_1_ = new QSysRoleDept("tb_1_");
 
     private final R2DBCQueryFactory queryFactory;
-
-    /**
-     * 根据菜单ID查询总数
-     */
-    @Override
-    public Mono<Long> selectCountByMenuId(Long menuId) {
-        return queryFactory.selectFrom(tb_1_)
-                .where(tb_1_.menuId.eq(menuId))
-                .fetchCount();
-    }
 
     /**
      * 根据角色ID删除
@@ -58,10 +48,9 @@ public class SysRoleMenuRepositoryImpl implements SysRoleMenuRepository {
      * 新增
      */
     @Override
-    public Mono<Long> insert(SysRoleMenu roleMenu) {
+    public Mono<Long> insert(SysRoleDept roleDept) {
         return queryFactory.insert(tb_1_)
-                .populate(roleMenu)
+                .populate(roleDept)
                 .execute();
     }
-
 }

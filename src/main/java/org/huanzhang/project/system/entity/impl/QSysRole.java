@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.DateTimePath;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.sql.ColumnMetadata;
+import org.huanzhang.project.system.entity.SysRole;
 
 import java.sql.Types;
 
@@ -17,7 +18,7 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
  */
 @SuppressWarnings("this-escape")
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
-public class QSysRole extends com.querydsl.sql.RelationalPathBase<QSysRole> {
+public class QSysRole extends com.querydsl.sql.RelationalPathBase<SysRole> {
 
     public final StringPath createBy = createString("createBy");
 
@@ -47,10 +48,10 @@ public class QSysRole extends com.querydsl.sql.RelationalPathBase<QSysRole> {
 
     public final DateTimePath<java.time.LocalDateTime> updateTime = createDateTime("updateTime", java.time.LocalDateTime.class);
 
-    public final com.querydsl.sql.PrimaryKey<QSysRole> primary = createPrimaryKey(roleId);
+    public final com.querydsl.sql.PrimaryKey<SysRole> primary = createPrimaryKey(roleId);
 
     public QSysRole(String variable) {
-        super(QSysRole.class, forVariable(variable), "null", "sys_role");
+        super(SysRole.class, forVariable(variable), "null", "sys_role");
         addMetadata();
     }
 

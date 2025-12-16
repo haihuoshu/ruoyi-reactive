@@ -11,6 +11,7 @@ import org.huanzhang.framework.aspectj.lang.annotation.Excel.ColumnType;
 import org.huanzhang.framework.aspectj.lang.annotation.Excel.Type;
 import org.huanzhang.framework.aspectj.lang.annotation.Excels;
 import org.huanzhang.framework.web.domain.BaseEntity;
+import org.huanzhang.project.system.entity.SysRole;
 
 import java.util.Date;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.List;
  *
  * @author ruoyi
  */
+@SuppressWarnings("ALL")
 public class SysUser extends BaseEntity {
     private static final long serialVersionUID = 1L;
 

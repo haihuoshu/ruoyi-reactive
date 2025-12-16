@@ -1,22 +1,17 @@
 package org.huanzhang.project.system.repository;
 
-import org.huanzhang.project.system.entity.SysRoleMenu;
+import org.huanzhang.project.system.entity.SysRoleDept;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 /**
- * 角色与菜单关联表 数据层
+ * 角色与部门关联表 数据层
  *
  * @author haihuoshu
  * @version 2025-12-12
  */
-public interface SysRoleMenuRepository {
-
-    /**
-     * 根据菜单ID查询总数
-     */
-    Mono<Long> selectCountByMenuId(Long menuId);
+public interface SysRoleDeptRepository {
 
     /**
      * 根据角色ID删除
@@ -31,6 +26,6 @@ public interface SysRoleMenuRepository {
     /**
      * 新增
      */
-    Mono<Long> insert(SysRoleMenu roleMenu);
+    Mono<Long> insert(SysRoleDept roleDept);
 
 }
