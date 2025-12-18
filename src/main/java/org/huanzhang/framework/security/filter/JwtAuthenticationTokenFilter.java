@@ -2,7 +2,6 @@ package org.huanzhang.framework.security.filter;
 
 import jakarta.annotation.Resource;
 import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.ReactiveExchangeContextHolder;
 import org.huanzhang.framework.security.service.TokenService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,16 +26,23 @@ public class JwtAuthenticationTokenFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        Authentication authentication = UsernamePasswordAuthenticationToken.unauthenticated(null, null);
+        Authentication unauthenticated = UsernamePasswordAuthenticationToken.unauthenticated(null, null);
 
-        LoginUser loginUser = tokenService.getLoginUser(exchange.getRequest());
-        if (StringUtils.isNotNull(loginUser)) {
-            tokenService.verifyToken(loginUser);
-            authentication = UsernamePasswordAuthenticationToken.authenticated(loginUser, null, loginUser.getAuthorities());
-        }
-        return chain.filter(exchange)
-                .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
-                .contextWrite(ReactiveExchangeContextHolder.withExchangeContext(Mono.just(exchange)));
+        return tokenService.getLoginUser(exchange.getRequest())
+                .map(loginUser -> {
+                    if (StringUtils.isNotNull(loginUser)) {
+                        tokenService.verifyToken(loginUser);
+                        return UsernamePasswordAuthenticationToken.authenticated(loginUser, null, loginUser.getAuthorities());
+                    }
+                    return unauthenticated;
+                })
+                .defaultIfEmpty(unauthenticated)
+                .flatMap(authentication -> {
+                    // 设置
+                    return chain.filter(exchange)
+                            .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
+                            .contextWrite(ReactiveExchangeContextHolder.withExchangeContext(Mono.just(exchange)));
+                });
     }
 
 }

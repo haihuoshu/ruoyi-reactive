@@ -4,15 +4,16 @@ import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.exception.user.UserPasswordNotMatchException;
 import org.huanzhang.common.exception.user.UserPasswordRetryLimitExceedException;
 import org.huanzhang.common.utils.SecurityUtils;
-import org.huanzhang.framework.redis.RedisCache;
+import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.security.context.AuthenticationContextHolder;
 import org.huanzhang.project.system.entity.SysUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * 登录密码方法
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class SysPasswordService {
     @Autowired
-    private RedisCache redisCache;
+    private ReactiveRedisUtils<Integer> reactiveRedisUtils;
 
     @Value(value = "${user.password.maxRetryCount}")
     private int maxRetryCount;
@@ -45,32 +46,30 @@ public class SysPasswordService {
         String username = usernamePasswordAuthenticationToken.getName();
         String password = usernamePasswordAuthenticationToken.getCredentials().toString();
 
-        Integer retryCount = redisCache.getCacheObject(getCacheKey(username));
+        reactiveRedisUtils.getCacheObject(getCacheKey(username))
+                .defaultIfEmpty(0)
+                .flatMap(retryCount -> {
 
-        if (retryCount == null) {
-            retryCount = 0;
-        }
+                    if (retryCount >= maxRetryCount) {
+                        return Mono.error(new UserPasswordRetryLimitExceedException(maxRetryCount, lockTime));
+                    }
 
-        if (retryCount >= maxRetryCount) {
-            throw new UserPasswordRetryLimitExceedException(maxRetryCount, lockTime);
-        }
-
-        if (!matches(user, password)) {
-            retryCount = retryCount + 1;
-            redisCache.setCacheObject(getCacheKey(username), retryCount, lockTime, TimeUnit.MINUTES);
-            throw new UserPasswordNotMatchException();
-        } else {
-            clearLoginRecordCache(username);
-        }
+                    if (!matches(user, password)) {
+                        retryCount = retryCount + 1;
+                        return reactiveRedisUtils.setCacheObject(getCacheKey(username), retryCount, Duration.ofMinutes(lockTime))
+                                .then(Mono.error(new UserPasswordNotMatchException()));
+                    } else {
+                        return clearLoginRecordCache(username);
+                    }
+                })
+                .subscribe();
     }
 
     public boolean matches(SysUser user, String rawPassword) {
         return SecurityUtils.matchesPassword(rawPassword, user.getPassword());
     }
 
-    public void clearLoginRecordCache(String loginName) {
-        if (redisCache.hasKey(getCacheKey(loginName))) {
-            redisCache.deleteObject(getCacheKey(loginName));
-        }
+    public Mono<Long> clearLoginRecordCache(String loginName) {
+        return reactiveRedisUtils.deleteCache(getCacheKey(loginName));
     }
 }

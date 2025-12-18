@@ -11,17 +11,18 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.ip.AddressUtils;
 import org.huanzhang.common.utils.ip.IpUtils;
 import org.huanzhang.common.utils.uuid.IdUtils;
-import org.huanzhang.framework.redis.RedisCache;
+import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * token验证处理
@@ -51,14 +52,14 @@ public class TokenService {
     private static final Long MILLIS_MINUTE_TWENTY = 20 * 60 * 1000L;
 
     @Resource
-    private RedisCache redisCache;
+    private ReactiveRedisUtils<LoginUser> reactiveRedisUtils;
 
     /**
      * 获取用户身份信息
      *
      * @return 用户信息
      */
-    public LoginUser getLoginUser(ServerHttpRequest request) {
+    public Mono<LoginUser> getLoginUser(ServerHttpRequest request) {
         // 获取请求携带的令牌
         String token = getToken(request);
         if (StringUtils.isNotEmpty(token)) {
@@ -67,12 +68,12 @@ public class TokenService {
                 // 解析对应的权限以及用户信息
                 String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
                 String userKey = getTokenKey(uuid);
-                return redisCache.getCacheObject(userKey);
+                return reactiveRedisUtils.getCacheObject(userKey);
             } catch (Exception e) {
                 log.error("获取用户信息异常'{}'", e.getMessage());
             }
         }
-        return null;
+        return Mono.empty();
     }
 
     /**
@@ -90,7 +91,7 @@ public class TokenService {
     public void delLoginUser(String token) {
         if (StringUtils.isNotEmpty(token)) {
             String userKey = getTokenKey(token);
-            redisCache.deleteObject(userKey);
+            reactiveRedisUtils.deleteCache(userKey).subscribe();
         }
     }
 
@@ -135,7 +136,7 @@ public class TokenService {
         loginUser.setExpireTime(loginUser.getLoginTime() + expireTime * MILLIS_MINUTE);
         // 根据uuid将loginUser缓存
         String userKey = getTokenKey(loginUser.getToken());
-        redisCache.setCacheObject(userKey, loginUser, expireTime, TimeUnit.MINUTES);
+        reactiveRedisUtils.setCacheObject(userKey, loginUser, Duration.ofMinutes(expireTime)).subscribe();
     }
 
     /**

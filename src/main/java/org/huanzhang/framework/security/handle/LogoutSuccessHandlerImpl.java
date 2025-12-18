@@ -2,9 +2,7 @@ package org.huanzhang.framework.security.handle;
 
 import jakarta.annotation.Resource;
 import org.huanzhang.common.constant.Constants;
-import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.manager.factory.AsyncFactory;
-import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.service.TokenService;
 import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.framework.webflux.utils.WebFluxUtils;
@@ -30,14 +28,15 @@ public class LogoutSuccessHandlerImpl implements ServerLogoutSuccessHandler {
      */
     @Override
     public Mono<Void> onLogoutSuccess(WebFilterExchange exchange, Authentication authentication) {
-        LoginUser loginUser = tokenService.getLoginUser(exchange.getExchange().getRequest());
-        if (StringUtils.isNotNull(loginUser)) {
-            String userName = loginUser.getUsername();
-            // 删除用户缓存记录
-            tokenService.delLoginUser(loginUser.getToken());
-            // 记录用户退出日志
-            AsyncFactory.recordLogininfor(exchange.getExchange().getRequest(), userName, Constants.LOGOUT, "退出成功");
-        }
-        return WebFluxUtils.writeBodyAsString(exchange.getExchange().getResponse(), AjaxResponse.ok(null, "退出成功"));
+        return tokenService.getLoginUser(exchange.getExchange().getRequest())
+                .flatMap(loginUser -> {
+                    String userName = loginUser.getUsername();
+                    // 删除用户缓存记录
+                    tokenService.delLoginUser(loginUser.getToken());
+                    // 记录用户退出日志
+                    AsyncFactory.recordLogininfor(exchange.getExchange().getRequest(), userName, Constants.LOGOUT, "退出成功");
+                    return Mono.empty();
+                })
+                .then(WebFluxUtils.writeBodyAsString(exchange.getExchange().getResponse(), AjaxResponse.ok(null, "退出成功")));
     }
 }

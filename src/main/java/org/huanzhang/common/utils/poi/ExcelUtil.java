@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
  *
  * @author ruoyi
  */
+@SuppressWarnings("ALL")
 public class ExcelUtil<T> {
     private static final Logger log = LoggerFactory.getLogger(ExcelUtil.class);
 
@@ -895,7 +896,7 @@ public class ExcelUtil<T> {
             String[] comboArray = attr.combo();
             if (attr.comboReadDict()) {
                 if (!sysDictMap.containsKey("combo_" + attr.dictType())) {
-                    String labels = DictUtils.getDictLabels(attr.dictType());
+                    String labels = "";
                     sysDictMap.put("combo_" + attr.dictType(), labels);
                 }
                 String val = sysDictMap.get("combo_" + attr.dictType());
@@ -1108,7 +1109,7 @@ public class ExcelUtil<T> {
      * @return 字典标签
      */
     public static String convertDictByExp(String dictValue, String dictType, String separator) {
-        return DictUtils.getDictLabel(dictType, dictValue, separator);
+        return "";
     }
 
     /**
@@ -1120,7 +1121,7 @@ public class ExcelUtil<T> {
      * @return 字典值
      */
     public static String reverseDictByExp(String dictLabel, String dictType, String separator) {
-        return DictUtils.getDictValue(dictType, dictLabel, separator);
+        return "";
     }
 
     /**

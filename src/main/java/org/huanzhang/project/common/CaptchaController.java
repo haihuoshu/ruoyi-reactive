@@ -6,7 +6,7 @@ import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.utils.sign.Base64;
 import org.huanzhang.common.utils.uuid.IdUtils;
-import org.huanzhang.framework.redis.RedisCache;
+import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.project.system.service.SysConfigService;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,8 +19,8 @@ import reactor.core.scheduler.Schedulers;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 验证码操作处理
@@ -36,7 +36,7 @@ public class CaptchaController {
     private Producer captchaProducerMath;
 
     @Resource
-    private RedisCache redisCache;
+    private ReactiveRedisUtils<String> reactiveRedisUtils;
 
     // 验证码类型
     @Value("${ruoyi.captchaType}")
@@ -52,11 +52,10 @@ public class CaptchaController {
     public Mono<AjaxResult> getCode() throws IOException {
         AjaxResult ajax = AjaxResult.success();
         return configService.selectCaptchaEnabled()
-                .publishOn(Schedulers.boundedElastic())
-                .map(captchaEnabled -> {
+                .flatMap(captchaEnabled -> {
                     ajax.put("captchaEnabled", captchaEnabled);
                     if (!captchaEnabled) {
-                        return ajax;
+                        return Mono.just(ajax);
                     }
 
                     // 保存验证码信息
@@ -78,21 +77,36 @@ public class CaptchaController {
                     }
 
                     if (Objects.isNull(image)) {
-                        return ajax;
+                        return Mono.just(ajax);
                     }
 
-                    redisCache.setCacheObject(verifyKey, code, Constants.CAPTCHA_EXPIRATION, TimeUnit.MINUTES);
-                    // 转换流信息写出
-                    FastByteArrayOutputStream os = new FastByteArrayOutputStream();
-                    try {
-                        ImageIO.write(image, "jpg", os);
-                    } catch (IOException e) {
-                        return AjaxResult.error(e.getMessage());
-                    }
-
-                    ajax.put("uuid", uuid);
-                    ajax.put("img", Base64.encode(os.toByteArray()));
-                    return ajax;
+                    return reactiveRedisUtils.setCacheObject(verifyKey, code, Duration.ofMinutes(Constants.CAPTCHA_EXPIRATION))
+                            .then(convertImageToBase64(image))
+                            .map(img -> {
+                                ajax.put("uuid", uuid);
+                                ajax.put("img", img);
+                                return ajax;
+                            });
                 });
     }
+
+    /**
+     * 将BufferedImage转换为Base64编码的字符串
+     *
+     * @param image 验证码图片
+     * @return Base64编码的图片字符串
+     */
+    private Mono<String> convertImageToBase64(BufferedImage image) {
+        return Mono.fromCallable(() -> {
+                    try (FastByteArrayOutputStream os = new FastByteArrayOutputStream()) {
+                        // 写入图片到字节流（格式为JPG）
+                        ImageIO.write(image, "jpg", os);
+                        // 对字节数组进行Base64编码
+                        return Base64.encode(os.toByteArray());
+                    }
+                })
+                // 切换到IO线程池，避免阻塞WebFlux的事件循环线程
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
 }

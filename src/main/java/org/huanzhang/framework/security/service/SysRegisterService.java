@@ -11,7 +11,7 @@ import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.manager.AsyncManager;
 import org.huanzhang.framework.manager.factory.AsyncFactory;
-import org.huanzhang.framework.redis.RedisCache;
+import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.security.RegisterBody;
 import org.huanzhang.project.system.dto.SysUserInsertDTO;
 import org.huanzhang.project.system.service.SysConfigService;
@@ -33,7 +33,7 @@ public class SysRegisterService {
     private SysConfigService configService;
 
     @Resource
-    private RedisCache redisCache;
+    private ReactiveRedisUtils<String> reactiveRedisUtils;
 
     /**
      * 注册
@@ -83,13 +83,19 @@ public class SysRegisterService {
      */
     public void validateCaptcha(String code, String uuid) {
         String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.nvl(uuid, "");
-        String captcha = redisCache.getCacheObject(verifyKey);
-        redisCache.deleteObject(verifyKey);
-        if (captcha == null) {
-            throw new CaptchaExpireException();
-        }
-        if (!code.equalsIgnoreCase(captcha)) {
-            throw new CaptchaException();
-        }
+        reactiveRedisUtils.getCacheObject(verifyKey)
+                .switchIfEmpty(Mono.error(new CaptchaExpireException()))
+                .flatMap(captcha -> {
+                    // 删除缓存
+                    return reactiveRedisUtils.deleteCache(verifyKey)
+                            .then(Mono.defer(() -> {
+                                if (!code.equalsIgnoreCase(captcha)) {
+                                    return Mono.error(new CaptchaException());
+                                }
+                                return Mono.empty();
+                            }));
+
+                })
+                .subscribe();
     }
 }

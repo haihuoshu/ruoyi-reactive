@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -76,7 +77,7 @@ public class SysConfigServiceImpl implements SysConfigService {
                     return sysConfigRepository.selectOneByConfigKey(configKey)
                             .flatMap(sysConfig -> {
                                 // 存入redis中
-                                return reactiveRedisUtils.setCacheObject(getCacheKey(configKey), sysConfig.getConfigValue())
+                                return reactiveRedisUtils.setCacheObject(getCacheKey(configKey), sysConfig.getConfigValue(), Duration.ofDays(7))
                                         .thenReturn(sysConfig.getConfigValue());
                             });
                 }));
@@ -106,7 +107,7 @@ public class SysConfigServiceImpl implements SysConfigService {
                         return ServiceException.monoInstance("新增配置'" + dto.getConfigName() + "'失败，配置键已存在");
                     }
                     return sysConfigRepository.insertConfig(entity)
-                            .then(reactiveRedisUtils.setCacheObject(getCacheKey(dto.getConfigKey()), dto.getConfigValue()));
+                            .then(reactiveRedisUtils.setCacheObject(getCacheKey(dto.getConfigKey()), dto.getConfigValue(), Duration.ofDays(7)));
                 })
                 .then();
     }
@@ -138,11 +139,11 @@ public class SysConfigServiceImpl implements SysConfigService {
                                 // 修改
                                 return sysConfigRepository.updateConfig(entity)
                                         .then(Mono.defer(() -> {
-                                            Mono<Boolean> deleteObject = Mono.empty();
+                                            Mono<Long> deleteObject = Mono.empty();
                                             if (ObjectUtils.notEqual(temp.getConfigKey(), dto.getConfigKey())) {
-                                                deleteObject = reactiveRedisUtils.deleteObject(getCacheKey(temp.getConfigKey()));
+                                                deleteObject = reactiveRedisUtils.deleteCache(getCacheKey(temp.getConfigKey()));
                                             }
-                                            return deleteObject.then(reactiveRedisUtils.setCacheObject(getCacheKey(dto.getConfigKey()), dto.getConfigValue()));
+                                            return deleteObject.then(reactiveRedisUtils.setCacheObject(getCacheKey(dto.getConfigKey()), dto.getConfigValue(), Duration.ofDays(7)));
                                         }));
                             });
                 })
@@ -161,7 +162,7 @@ public class SysConfigServiceImpl implements SysConfigService {
                     }
 
                     return sysConfigRepository.deleteByConfigId(config.getConfigId())
-                            .then(reactiveRedisUtils.deleteObject(getCacheKey(config.getConfigKey())));
+                            .then(reactiveRedisUtils.deleteCache(getCacheKey(config.getConfigKey())));
                 })
                 .then();
     }
@@ -171,10 +172,10 @@ public class SysConfigServiceImpl implements SysConfigService {
      */
     @Override
     public Mono<Void> refreshConfigCache() {
-        return reactiveRedisUtils.keys(CacheConstants.SYS_CONFIG_KEY + "*")
-                .transform(reactiveRedisUtils::deleteObject)
+        return reactiveRedisUtils.cacheKeys(CacheConstants.SYS_CONFIG_KEY + "*")
+                .transform(reactiveRedisUtils::deleteCache)
                 .thenMany(sysConfigRepository.selectListByQuery(new SysConfigQuery()))
-                .map(config -> reactiveRedisUtils.setCacheObject(getCacheKey(config.getConfigKey()), config.getConfigValue()))
+                .map(config -> reactiveRedisUtils.setCacheObject(getCacheKey(config.getConfigKey()), config.getConfigValue(), Duration.ofDays(7)))
                 .then();
     }
 

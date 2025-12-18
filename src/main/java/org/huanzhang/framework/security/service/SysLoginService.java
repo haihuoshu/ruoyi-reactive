@@ -10,7 +10,7 @@ import org.huanzhang.common.utils.MessageUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.ip.IpUtils;
 import org.huanzhang.framework.manager.factory.AsyncFactory;
-import org.huanzhang.framework.redis.RedisCache;
+import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.context.AuthenticationContextHolder;
 import org.huanzhang.project.system.dto.SysUserInsertDTO;
@@ -37,7 +37,7 @@ public class SysLoginService {
     private ReactiveAuthenticationManager authenticationManager;
 
     @Resource
-    private RedisCache redisCache;
+    private ReactiveRedisUtils<String> reactiveRedisUtils;
 
     @Resource
     private SysUserService userService;
@@ -92,21 +92,30 @@ public class SysLoginService {
      */
     public void validateCaptcha(ServerHttpRequest request, String username, String code, String uuid) {
         configService.selectCaptchaEnabled()
-                .subscribe(captchaEnabled -> {
+                .flatMap(captchaEnabled -> {
                     if (captchaEnabled) {
                         String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.nvl(uuid, "");
-                        String captcha = redisCache.getCacheObject(verifyKey);
-                        if (captcha == null) {
-                            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"));
-                            throw new CaptchaExpireException();
-                        }
-                        redisCache.deleteObject(verifyKey);
-                        if (!code.equalsIgnoreCase(captcha)) {
-                            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.error"));
-                            throw new CaptchaException();
-                        }
+                        return reactiveRedisUtils.getCacheObject(verifyKey)
+                                .switchIfEmpty(Mono.defer(() -> {
+                                    AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"));
+                                    throw new CaptchaExpireException();
+                                }))
+                                .flatMap(captcha -> {
+                                    // 删除缓存
+                                    return reactiveRedisUtils.deleteCache(verifyKey)
+                                            .then(Mono.defer(() -> {
+                                                if (!code.equalsIgnoreCase(captcha)) {
+                                                    AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.error"));
+                                                    return Mono.error(new CaptchaException());
+                                                }
+                                                return Mono.empty();
+                                            }));
+                                });
+
                     }
-                });
+                    return Mono.empty();
+                })
+                .subscribe();
     }
 
     /**
