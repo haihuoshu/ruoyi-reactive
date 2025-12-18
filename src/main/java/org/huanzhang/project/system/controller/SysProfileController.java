@@ -1,6 +1,5 @@
 package org.huanzhang.project.system.controller;
 
-import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.common.utils.file.FileUploadUtils;
 import org.huanzhang.common.utils.file.MimeTypeUtils;
@@ -18,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -87,7 +87,7 @@ public class SysProfileController extends BaseController {
         newPassword = SecurityUtils.encryptPassword(newPassword);
         if (userService.resetUserPwd(userName, newPassword) > 0) {
             // 更新缓存用户密码&密码最后更新时间
-            loginUser.getUser().setPwdUpdateDate(DateUtils.getNowDate());
+            loginUser.getUser().setPwdUpdateDate(LocalDateTime.now());
             loginUser.getUser().setPassword(newPassword);
             tokenService.setLoginUser(loginUser);
             return success();

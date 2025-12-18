@@ -26,7 +26,7 @@ public class UserDetailsServiceImpl implements ReactiveUserDetailsService {
 
     private final SysUserRepository sysUserRepository;
 
-    private final SysPasswordService passwordService;
+//    private final SysPasswordService passwordService;
 
     private final SysMenuService sysMenuService;
 
@@ -43,7 +43,7 @@ public class UserDetailsServiceImpl implements ReactiveUserDetailsService {
                         return ServiceException.monoInstance(MessageUtils.message("user.blocked"));
                     }
 
-                    passwordService.validate(user);
+//                    passwordService.validate(user);
 
                     return createLoginUser(user);
                 });

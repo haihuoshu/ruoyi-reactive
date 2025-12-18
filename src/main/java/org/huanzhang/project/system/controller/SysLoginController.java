@@ -3,7 +3,6 @@ package org.huanzhang.project.system.controller;
 import jakarta.annotation.Resource;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.core.text.Convert;
-import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginBody;
 import org.huanzhang.framework.security.ReactiveSecurityUtils;
@@ -23,7 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-import java.util.Date;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -115,14 +115,14 @@ public class SysLoginController {
     }
 
     // 检查初始密码是否提醒修改
-    public boolean initPasswordIsModify(Date pwdUpdateDate) {
+    public boolean initPasswordIsModify(LocalDateTime pwdUpdateDate) {
         //noinspection ReactiveStreamsUnusedPublisher
         Integer initPasswordModify = Convert.toInt(configService.selectConfigByKey("sys.account.initPasswordModify"));
         return initPasswordModify != null && initPasswordModify == 1 && pwdUpdateDate == null;
     }
 
     // 检查密码是否过期
-    public boolean passwordIsExpiration(Date pwdUpdateDate) {
+    public boolean passwordIsExpiration(LocalDateTime pwdUpdateDate) {
         //noinspection ReactiveStreamsUnusedPublisher
         Integer passwordValidateDays = Convert.toInt(configService.selectConfigByKey("sys.account.passwordValidateDays"));
         if (passwordValidateDays != null && passwordValidateDays > 0) {
@@ -130,8 +130,7 @@ public class SysLoginController {
                 // 如果从未修改过初始密码，直接提醒过期
                 return true;
             }
-            Date nowDate = DateUtils.getNowDate();
-            return DateUtils.differentDaysByMillisecond(nowDate, pwdUpdateDate) > passwordValidateDays;
+            return Duration.between(LocalDateTime.now(), pwdUpdateDate).toDays() > passwordValidateDays;
         }
         return false;
     }

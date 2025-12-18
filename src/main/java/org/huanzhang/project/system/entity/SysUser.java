@@ -1,10 +1,11 @@
 package org.huanzhang.project.system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.huanzhang.framework.r2dbc.entity.AbstractAuditable;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -68,11 +69,11 @@ public class SysUser extends AbstractAuditable {
     /**
      * 最后登录时间
      */
-    private Date loginDate;
+    private LocalDateTime loginDate;
     /**
      * 密码最后更新时间
      */
-    private Date pwdUpdateDate;
+    private LocalDateTime pwdUpdateDate;
     /**
      * 角色对象
      */
@@ -94,6 +95,7 @@ public class SysUser extends AbstractAuditable {
         this.userId = userId;
     }
 
+    @JsonIgnore
     public boolean isNotAdmin() {
         return !isAdmin(this.userId);
     }
