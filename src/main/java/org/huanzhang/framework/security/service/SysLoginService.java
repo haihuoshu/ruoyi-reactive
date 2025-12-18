@@ -6,7 +6,6 @@ import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.constant.UserConstants;
 import org.huanzhang.common.exception.ServiceException;
 import org.huanzhang.common.exception.user.*;
-import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.MessageUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.ip.IpUtils;
@@ -14,9 +13,9 @@ import org.huanzhang.framework.manager.factory.AsyncFactory;
 import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.context.AuthenticationContextHolder;
-import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.service.ISysUserService;
+import org.huanzhang.project.system.dto.SysUserInsertDTO;
 import org.huanzhang.project.system.service.SysConfigService;
+import org.huanzhang.project.system.service.SysUserService;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -41,7 +40,7 @@ public class SysLoginService {
     private RedisCache redisCache;
 
     @Resource
-    private ISysUserService userService;
+    private SysUserService userService;
 
     @Resource
     private SysConfigService configService;
@@ -149,11 +148,11 @@ public class SysLoginService {
      *
      * @param userId 用户ID
      */
-    public void recordLoginInfo(ServerHttpRequest request, Long userId) {
-        SysUser sysUser = new SysUser();
-        sysUser.setUserId(userId);
-        sysUser.setLoginIp(IpUtils.getIpAddr(request));
-        sysUser.setLoginDate(DateUtils.getNowDate());
-        userService.updateUserProfile(sysUser);
+    public void recordLoginInfo(@SuppressWarnings("unused") ServerHttpRequest request, Long userId) {
+        SysUserInsertDTO sysUserInsertDTO = new SysUserInsertDTO();
+        sysUserInsertDTO.setUserId(userId);
+//        sysUserInsertDTO.setLoginIp(IpUtils.getIpAddr(request));
+//        sysUserInsertDTO.setLoginDate(DateUtils.getNowDate());
+        userService.updateUserProfile(sysUserInsertDTO);
     }
 }

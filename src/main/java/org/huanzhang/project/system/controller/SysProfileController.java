@@ -1,19 +1,7 @@
 package org.huanzhang.project.system.controller;
 
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.huanzhang.common.utils.DateUtils;
 import org.huanzhang.common.utils.SecurityUtils;
-import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.file.FileUploadUtils;
 import org.huanzhang.common.utils.file.MimeTypeUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.Log;
@@ -23,8 +11,14 @@ import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.service.TokenService;
 import org.huanzhang.framework.web.controller.BaseController;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.project.system.domain.SysUser;
-import org.huanzhang.project.system.service.ISysUserService;
+import org.huanzhang.project.system.dto.SysUserInsertDTO;
+import org.huanzhang.project.system.entity.SysUser;
+import org.huanzhang.project.system.service.SysUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 /**
  * 个人信息 业务处理
@@ -35,7 +29,7 @@ import org.huanzhang.project.system.service.ISysUserService;
 @RequestMapping("/system/user/profile")
 public class SysProfileController extends BaseController {
     @Autowired
-    private ISysUserService userService;
+    private SysUserService userService;
 
     @Autowired
     private TokenService tokenService;
@@ -58,20 +52,14 @@ public class SysProfileController extends BaseController {
      */
     @Log(title = "个人信息", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult updateProfile(@RequestBody SysUser user) {
+    public AjaxResult updateProfile(@RequestBody SysUserInsertDTO user) {
         LoginUser loginUser = getLoginUser();
         SysUser currentUser = loginUser.getUser();
         currentUser.setNickName(user.getNickName());
         currentUser.setEmail(user.getEmail());
         currentUser.setPhonenumber(user.getPhonenumber());
         currentUser.setSex(user.getSex());
-        if (StringUtils.isNotEmpty(user.getPhonenumber()) && !userService.checkPhoneUnique(currentUser)) {
-            return error("修改用户'" + loginUser.getUsername() + "'失败，手机号码已存在");
-        }
-        if (StringUtils.isNotEmpty(user.getEmail()) && !userService.checkEmailUnique(currentUser)) {
-            return error("修改用户'" + loginUser.getUsername() + "'失败，邮箱账号已存在");
-        }
-        if (userService.updateUserProfile(currentUser) > 0) {
+        if (userService.updateUserProfile(user) > 0) {
             // 更新缓存用户信息
             tokenService.setLoginUser(loginUser);
             return success();

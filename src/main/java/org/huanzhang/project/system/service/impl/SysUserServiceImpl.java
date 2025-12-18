@@ -1,88 +1,347 @@
 package org.huanzhang.project.system.service.impl;
 
-import jakarta.annotation.Resource;
-import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.huanzhang.common.constant.UserConstants;
 import org.huanzhang.common.exception.ServiceException;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.common.utils.bean.BeanValidators;
-import org.huanzhang.common.utils.spring.SpringUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
-import org.huanzhang.project.system.domain.SysUser;
+import org.huanzhang.framework.security.ReactiveSecurityUtils;
+import org.huanzhang.project.system.converter.SysUserMapper;
+import org.huanzhang.project.system.dto.SysUserInsertDTO;
+import org.huanzhang.project.system.dto.SysUserUpdateDTO;
 import org.huanzhang.project.system.entity.SysRole;
+import org.huanzhang.project.system.entity.SysUser;
 import org.huanzhang.project.system.entity.SysUserPost;
 import org.huanzhang.project.system.entity.SysUserRole;
-import org.huanzhang.project.system.mapper.SysUserMapper;
-import org.huanzhang.project.system.mapper.SysUserPostMapper;
+import org.huanzhang.project.system.query.SysUserQuery;
 import org.huanzhang.project.system.repository.SysRoleRepository;
+import org.huanzhang.project.system.repository.SysUserPostRepository;
+import org.huanzhang.project.system.repository.SysUserRepository;
 import org.huanzhang.project.system.repository.SysUserRoleRepository;
-import org.huanzhang.project.system.service.ISysUserService;
-import org.huanzhang.project.system.service.SysConfigService;
 import org.huanzhang.project.system.service.SysDeptService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.huanzhang.project.system.service.SysRoleService;
+import org.huanzhang.project.system.service.SysUserService;
+import org.huanzhang.project.system.vo.SysUserVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 用户 业务层处理
+ * 用户表 业务处理
  *
- * @author ruoyi
+ * @author haihuoshu
+ * @version 2025-12-17
  */
+@Slf4j
 @Service
-public class SysUserServiceImpl implements ISysUserService {
-    private static final Logger log = LoggerFactory.getLogger(SysUserServiceImpl.class);
+@RequiredArgsConstructor
+public class SysUserServiceImpl implements SysUserService {
 
-    @Resource
-    private SysUserMapper userMapper;
+    private final SysUserRepository sysUserRepository;
+    private final SysUserMapper sysUserMapper;
 
-    @Resource
-    private SysRoleRepository roleMapper;
+    private final SysUserRoleRepository sysUserRoleRepository;
+    private final SysUserPostRepository sysUserPostRepository;
 
-    @Resource
-    private SysUserRoleRepository userRoleMapper;
+    private final SysRoleRepository sysRoleRepository;
 
-    @Resource
-    private SysUserPostMapper userPostMapper;
-
-    @Resource
-    private SysConfigService configService;
-
-    @Resource
-    private SysDeptService deptService;
-
-    @Resource
-    protected Validator validator;
+    private final SysDeptService deptService;
+    private final SysRoleService roleService;
 
     /**
-     * 根据条件分页查询用户列表
-     *
-     * @param user 用户信息
-     * @return 用户信息集合信息
+     * 根据条件查询用户总数
      */
     @Override
-    @DataScope(deptAlias = "d", userAlias = "u")
-    public List<SysUser> selectUserList(SysUser user) {
-        return userMapper.selectUserList(user);
+    public Mono<Long> selectUserCountByQuery(SysUserQuery query) {
+        return sysUserRepository.selectCountByQuery(query);
     }
 
     /**
-     * 根据条件分页查询已分配用户角色列表
-     *
-     * @param user 用户信息
-     * @return 用户信息集合信息
+     * 根据条件查询用户列表
+     */
+    @Override
+    public Flux<SysUserVO> selectUserListByQuery(SysUserQuery query) {
+        return sysUserRepository.selectListByQuery(query)
+                .map(sysUserMapper::toVo);
+    }
+
+    /**
+     * 根据条件查询用户列表
      */
     @Override
     @DataScope(deptAlias = "d", userAlias = "u")
-    public List<SysUser> selectAllocatedList(SysUser user) {
-        return userMapper.selectAllocatedList(user);
+    public List<SysUserInsertDTO> selectAllocatedList(SysUserInsertDTO user) {
+        return sysUserRepository.selectAllocatedList(user);
+    }
+
+    /**
+     * 根据用户ID查询详细信息
+     */
+    @Override
+    public Mono<SysUserVO> selectUserById(Long userId) {
+        checkUserDataScope(userId);
+
+        return sysUserRepository.selectOneByUserId(userId)
+                .switchIfEmpty(ServiceException.monoInstance("用户不存在"))
+                .map(sysUserMapper::toVo);
+    }
+
+    /**
+     * 检查用户是否有数据权限
+     *
+     * @param userId 用户id
+     */
+    @Override
+    public void checkUserDataScope(Long userId) {
+        if (!SysUser.isAdmin(SecurityUtils.getUserId())) {
+            SysUserQuery query = new SysUserQuery();
+            query.setUserId(userId);
+            sysUserRepository.selectListByQuery(query)
+                    .hasElements()
+                    .subscribe(has -> {
+                        if (BooleanUtils.isFalse(has)) {
+                            throw new ServiceException("没有权限访问用户数据！");
+                        }
+                    });
+        }
+    }
+
+    /**
+     * 新增用户
+     */
+    @Transactional
+    @Override
+    public Mono<Void> insertUser(SysUserInsertDTO dto) {
+        deptService.checkDeptDataScope(dto.getDeptId());
+        roleService.checkRoleDataScope(dto.getRoleIds());
+
+        SysUser entity = sysUserMapper.toEntity(dto);
+        return checkUserNameUnique(entity)
+                .then(checkPhoneUnique(entity))
+                .then(checkEmailUnique(entity))
+                .then(Mono.defer(() -> {
+                    dto.setPassword(SecurityUtils.encryptPassword(dto.getPassword()));
+                    // 新增用户信息
+                    return sysUserRepository.insertUser(entity)
+                            .flatMap(userId -> {
+                                // 新增用户与岗位关联
+                                return insertUserPost(userId, dto.getPostIds())
+                                        // 新增用户与角色关联
+                                        .then(insertUserRole(userId, dto.getRoleIds()));
+                            });
+                }))
+                .then();
+    }
+
+    /**
+     * 检查用户账号是否唯一
+     */
+    private Mono<Void> checkUserNameUnique(SysUser user) {
+        return sysUserRepository.selectOneByUserName(user.getUserName())
+                .flatMap(info -> {
+                    if (ObjectUtils.notEqual(info.getUserId(), user.getUserId())) {
+                        return ServiceException.monoInstance("用户账号已存在");
+                    }
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    /**
+     * 检查手机号码是否唯一
+     */
+    private Mono<Void> checkPhoneUnique(SysUser user) {
+        if (StringUtils.isBlank(user.getPhonenumber())) {
+            return Mono.empty();
+        }
+        return sysUserRepository.selectOneByPhonenumber(user.getPhonenumber())
+                .flatMap(info -> {
+                    if (ObjectUtils.notEqual(info.getUserId(), user.getUserId())) {
+                        return ServiceException.monoInstance("手机号码已存在");
+                    }
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    /**
+     * 检查用户邮箱是否唯一
+     */
+    private Mono<Void> checkEmailUnique(SysUser user) {
+        if (StringUtils.isBlank(user.getEmail())) {
+            return Mono.empty();
+        }
+        return sysUserRepository.selectOneByEmail(user.getEmail())
+                .flatMap(info -> {
+                    if (ObjectUtils.notEqual(info.getUserId(), user.getUserId())) {
+                        return ServiceException.monoInstance("用户邮箱已存在");
+                    }
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    /**
+     * 新增用户岗位
+     */
+    public Mono<Void> insertUserPost(Long userId, List<Long> postIds) {
+        return Flux.fromIterable(postIds)
+                .flatMap(postId -> {
+                    SysUserPost userPost = new SysUserPost();
+                    userPost.setUserId(userId);
+                    userPost.setPostId(postId);
+                    return sysUserPostRepository.insert(userPost);
+                })
+                .then();
+    }
+
+    /**
+     * 新增用户角色
+     */
+    public Mono<Void> insertUserRole(Long userId, List<Long> roleIds) {
+        return Flux.fromIterable(roleIds)
+                .flatMap(roleId -> {
+                    SysUserRole userPost = new SysUserRole();
+                    userPost.setUserId(userId);
+                    userPost.setRoleId(roleId);
+                    return sysUserRoleRepository.insert(userPost);
+                })
+                .then();
+    }
+
+    /**
+     * 修改用户
+     */
+    @Transactional
+    @Override
+    public Mono<Void> updateUser(SysUserUpdateDTO dto) {
+        checkUserAllowed(dto.getUserId());
+        checkUserDataScope(dto.getUserId());
+        deptService.checkDeptDataScope(dto.getDeptId());
+        roleService.checkRoleDataScope(dto.getRoleIds());
+
+        SysUser entity = sysUserMapper.toEntity(dto);
+        return checkUserNameUnique(entity)
+                .then(checkPhoneUnique(entity))
+                .then(checkEmailUnique(entity))
+                .then(sysUserRepository.selectOneByUserId(dto.getUserId()))
+                .switchIfEmpty(ServiceException.monoInstance("用户不存在"))
+                .flatMap(user -> {
+                    // 更新用户信息
+                    return sysUserRepository.updateUser(entity)
+                            // 更新用户与岗位关联
+                            .then(sysUserPostRepository.deleteByUserId(user.getUserId()).then(insertUserPost(user.getUserId(), dto.getPostIds())))
+                            // 更新用户与角色关联
+                            .then(sysUserRoleRepository.deleteByUserId(user.getUserId()).then(insertUserRole(user.getUserId(), dto.getPostIds())));
+                })
+                .then();
+    }
+
+    /**
+     * 检查用户是否允许操作
+     */
+    public void checkUserAllowed(Long userId) {
+        if (SysUser.isAdmin(userId)) {
+            throw new ServiceException("不允许操作超级管理员用户");
+        }
+    }
+
+    /**
+     * 修改用户密码
+     */
+    @Override
+    public Mono<Void> updateUserPassword(SysUserUpdateDTO dto) {
+        checkUserAllowed(dto.getUserId());
+        checkUserDataScope(dto.getUserId());
+
+        return sysUserRepository.selectOneByUserId(dto.getUserId())
+                .switchIfEmpty(ServiceException.monoInstance("用户不存在"))
+                .flatMap(user -> {
+                    if (org.apache.commons.lang3.StringUtils.isBlank(dto.getPassword())) {
+                        return ServiceException.monoInstance("密码不能为空");
+                    }
+                    // 更新用户信息
+                    user.setPassword(SecurityUtils.encryptPassword(dto.getPassword()));
+                    return sysUserRepository.updateUser(user);
+                })
+                .then();
+    }
+
+    /**
+     * 修改用户状态
+     */
+    @Override
+    public Mono<Void> updateUserStatus(SysUserUpdateDTO dto) {
+        checkUserAllowed(dto.getUserId());
+        checkUserDataScope(dto.getUserId());
+
+        return sysUserRepository.selectOneByUserId(dto.getUserId())
+                .switchIfEmpty(ServiceException.monoInstance("用户不存在"))
+                .flatMap(user -> {
+                    if (org.apache.commons.lang3.StringUtils.isBlank(dto.getStatus())) {
+                        return ServiceException.monoInstance("状态不能为空");
+                    }
+                    // 更新用户信息
+                    user.setStatus(dto.getStatus());
+                    return sysUserRepository.updateUser(user);
+                })
+                .then();
+    }
+
+    /**
+     * 用户授权角色
+     */
+    @Transactional
+    @Override
+    public Mono<Void> updateUserRole(SysUserUpdateDTO dto) {
+        checkUserAllowed(dto.getUserId());
+        checkUserDataScope(dto.getUserId());
+        roleService.checkRoleDataScope(dto.getRoleIds());
+
+        return sysUserRepository.selectOneByUserId(dto.getUserId())
+                .switchIfEmpty(ServiceException.monoInstance("用户不存在"))
+                .flatMap(user -> {
+                    // 更新用户与角色关联
+                    return sysUserRoleRepository.deleteByUserId(user.getUserId())
+                            .then(insertUserRole(user.getUserId(), dto.getPostIds()));
+                })
+                .then();
+    }
+
+    /**
+     * 批量删除用户
+     */
+    @Override
+    @Transactional
+    public Mono<Void> deleteUserByIds(List<Long> userIds) {
+        return ReactiveSecurityUtils.getUserId()
+                .flatMap(userId -> {
+                    if (org.apache.commons.collections4.CollectionUtils.containsAny(userIds, userId)) {
+                        return ServiceException.monoInstance("当前用户不能删除");
+                    }
+                    return Mono.empty();
+                })
+                .thenMany(Flux.fromIterable(userIds))
+                .flatMap(userId -> {
+                    checkUserAllowed(userId);
+                    checkUserDataScope(userId);
+                    return Mono.empty();
+                })
+                // 删除用户
+                .then(sysUserRepository.deleteByUserIds(userIds))
+                // 删除用户与岗位关联
+                .then(sysUserPostRepository.deleteByUserIds(userIds))
+                // 删除用户与角色关联
+                .then(sysUserRoleRepository.deleteByUserIds(userIds))
+                .then();
     }
 
     /**
@@ -93,30 +352,8 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     @DataScope(deptAlias = "d", userAlias = "u")
-    public List<SysUser> selectUnallocatedList(SysUser user) {
-        return userMapper.selectUnallocatedList(user);
-    }
-
-    /**
-     * 通过用户名查询用户
-     *
-     * @param userName 用户名
-     * @return 用户对象信息
-     */
-    @Override
-    public SysUser selectUserByUserName(String userName) {
-        return userMapper.selectUserByUserName(userName);
-    }
-
-    /**
-     * 通过用户ID查询用户
-     *
-     * @param userId 用户ID
-     * @return 用户对象信息
-     */
-    @Override
-    public SysUser selectUserById(Long userId) {
-        return userMapper.selectUserById(userId);
+    public List<SysUserInsertDTO> selectUnallocatedList(SysUserInsertDTO user) {
+        return sysUserRepository.selectUnallocatedList(user);
     }
 
     /**
@@ -127,7 +364,7 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     public String selectUserRoleGroup(String userName) {
-        List<SysRole> list = roleMapper.selectRolesByUserName(userName);
+        List<SysRole> list = sysRoleRepository.selectRolesByUserName(userName);
         if (CollectionUtils.isEmpty(list)) {
             return StringUtils.EMPTY;
         }
@@ -144,159 +381,11 @@ public class SysUserServiceImpl implements ISysUserService {
     public String selectUserPostGroup(String userName) {
 //        List<SysPost> list = postMapper.selectPostsByUserName(userName);
 //        if (CollectionUtils.isEmpty(list)) {
-            return StringUtils.EMPTY;
+        return StringUtils.EMPTY;
 //        }
 //        return list.stream().map(SysPost::getPostName).collect(Collectors.joining(","));
     }
 
-    /**
-     * 校验用户名称是否唯一
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    @Override
-    public boolean checkUserNameUnique(SysUser user) {
-        Long userId = StringUtils.isNull(user.getUserId()) ? -1L : user.getUserId();
-        SysUser info = userMapper.checkUserNameUnique(user.getUserName());
-        if (StringUtils.isNotNull(info) && ObjectUtils.notEqual(info.getUserId(), userId)) {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
-    }
-
-    /**
-     * 校验用户名称是否唯一
-     *
-     * @param user 用户信息
-     */
-    @Override
-    public boolean checkPhoneUnique(SysUser user) {
-        Long userId = StringUtils.isNull(user.getUserId()) ? -1L : user.getUserId();
-        SysUser info = userMapper.checkPhoneUnique(user.getPhonenumber());
-        if (StringUtils.isNotNull(info) && ObjectUtils.notEqual(info.getUserId(), userId)) {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
-    }
-
-    /**
-     * 校验email是否唯一
-     *
-     * @param user 用户信息
-     */
-    @Override
-    public boolean checkEmailUnique(SysUser user) {
-        Long userId = StringUtils.isNull(user.getUserId()) ? -1L : user.getUserId();
-        SysUser info = userMapper.checkEmailUnique(user.getEmail());
-        if (StringUtils.isNotNull(info) && ObjectUtils.notEqual(info.getUserId(), userId)) {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
-    }
-
-    /**
-     * 校验用户是否允许操作
-     *
-     * @param user 用户信息
-     */
-    @Override
-    public void checkUserAllowed(SysUser user) {
-        if (StringUtils.isNotNull(user.getUserId()) && user.isAdmin()) {
-            throw new ServiceException("不允许操作超级管理员用户");
-        }
-    }
-
-    /**
-     * 校验用户是否有数据权限
-     *
-     * @param userId 用户id
-     */
-    @Override
-    public void checkUserDataScope(Long userId) {
-        if (!SysUser.isAdmin(SecurityUtils.getUserId())) {
-            SysUser user = new SysUser();
-            user.setUserId(userId);
-            List<SysUser> users = SpringUtils.getAopProxy(this).selectUserList(user);
-            if (StringUtils.isEmpty(users)) {
-                throw new ServiceException("没有权限访问用户数据！");
-            }
-        }
-    }
-
-    /**
-     * 新增保存用户信息
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    @Override
-    @Transactional
-    public int insertUser(SysUser user) {
-        // 新增用户信息
-        int rows = userMapper.insertUser(user);
-        // 新增用户岗位关联
-        insertUserPost(user);
-        // 新增用户与角色管理
-        insertUserRole(user);
-        return rows;
-    }
-
-    /**
-     * 注册用户信息
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    @Override
-    public boolean registerUser(SysUser user) {
-        return userMapper.insertUser(user) > 0;
-    }
-
-    /**
-     * 修改保存用户信息
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    @Override
-    @Transactional
-    public int updateUser(SysUser user) {
-        Long userId = user.getUserId();
-        // 删除用户与角色关联
-        userRoleMapper.deleteUserRoleByUserId(userId);
-        // 新增用户与角色管理
-        insertUserRole(user);
-        // 删除用户与岗位关联
-        userPostMapper.deleteUserPostByUserId(userId);
-        // 新增用户与岗位管理
-        insertUserPost(user);
-        return userMapper.updateUser(user);
-    }
-
-    /**
-     * 用户授权角色
-     *
-     * @param userId  用户ID
-     * @param roleIds 角色组
-     */
-    @Override
-    @Transactional
-    public void insertUserAuth(Long userId, Long[] roleIds) {
-        userRoleMapper.deleteUserRoleByUserId(userId);
-        insertUserRole(userId, roleIds);
-    }
-
-    /**
-     * 修改用户状态
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    @Override
-    public int updateUserStatus(SysUser user) {
-        return userMapper.updateUser(user);
-    }
 
     /**
      * 修改用户基本信息
@@ -305,8 +394,9 @@ public class SysUserServiceImpl implements ISysUserService {
      * @return 结果
      */
     @Override
-    public int updateUserProfile(SysUser user) {
-        return userMapper.updateUser(user);
+    public int updateUserProfile(SysUserInsertDTO user) {
+        sysUserRepository.updateUser(sysUserMapper.toEntity(user)).subscribe();
+        return 1;
     }
 
     /**
@@ -318,18 +408,7 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     public boolean updateUserAvatar(String userName, String avatar) {
-        return userMapper.updateUserAvatar(userName, avatar) > 0;
-    }
-
-    /**
-     * 重置用户密码
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    @Override
-    public int resetPwd(SysUser user) {
-        return userMapper.updateUser(user);
+        return sysUserRepository.updateUserAvatar(userName, avatar) > 0;
     }
 
     /**
@@ -341,151 +420,7 @@ public class SysUserServiceImpl implements ISysUserService {
      */
     @Override
     public int resetUserPwd(String userName, String password) {
-        return userMapper.resetUserPwd(userName, password);
+        return sysUserRepository.resetUserPwd(userName, password);
     }
 
-    /**
-     * 新增用户角色信息
-     *
-     * @param user 用户对象
-     */
-    public void insertUserRole(SysUser user) {
-        this.insertUserRole(user.getUserId(), user.getRoleIds());
-    }
-
-    /**
-     * 新增用户岗位信息
-     *
-     * @param user 用户对象
-     */
-    public void insertUserPost(SysUser user) {
-        Long[] posts = user.getPostIds();
-        if (StringUtils.isNotEmpty(posts)) {
-            // 新增用户与岗位管理
-            List<SysUserPost> list = new ArrayList<>(posts.length);
-            for (Long postId : posts) {
-                SysUserPost up = new SysUserPost();
-                up.setUserId(user.getUserId());
-                up.setPostId(postId);
-                list.add(up);
-            }
-            userPostMapper.batchUserPost(list);
-        }
-    }
-
-    /**
-     * 新增用户角色信息
-     *
-     * @param userId  用户ID
-     * @param roleIds 角色组
-     */
-    public void insertUserRole(Long userId, Long[] roleIds) {
-        if (StringUtils.isNotEmpty(roleIds)) {
-            // 新增用户与角色管理
-            List<SysUserRole> list = new ArrayList<>(roleIds.length);
-            for (Long roleId : roleIds) {
-                SysUserRole ur = new SysUserRole();
-                ur.setUserId(userId);
-                ur.setRoleId(roleId);
-                list.add(ur);
-            }
-            userRoleMapper.batchUserRole(list);
-        }
-    }
-
-    /**
-     * 通过用户ID删除用户
-     *
-     * @param userId 用户ID
-     * @return 结果
-     */
-    @Override
-    @Transactional
-    public int deleteUserById(Long userId) {
-        // 删除用户与角色关联
-        userRoleMapper.deleteUserRoleByUserId(userId);
-        // 删除用户与岗位表
-        userPostMapper.deleteUserPostByUserId(userId);
-        return userMapper.deleteUserById(userId);
-    }
-
-    /**
-     * 批量删除用户信息
-     *
-     * @param userIds 需要删除的用户ID
-     * @return 结果
-     */
-    @Override
-    @Transactional
-    public int deleteUserByIds(Long[] userIds) {
-        for (Long userId : userIds) {
-            checkUserAllowed(new SysUser(userId));
-            checkUserDataScope(userId);
-        }
-        // 删除用户与角色关联
-        userRoleMapper.deleteUserRole(userIds);
-        // 删除用户与岗位关联
-        userPostMapper.deleteUserPost(userIds);
-        return userMapper.deleteUserByIds(userIds);
-    }
-
-    /**
-     * 导入用户数据
-     *
-     * @param userList        用户数据列表
-     * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
-     * @param operName        操作用户
-     * @return 结果
-     */
-    @Override
-    public String importUser(List<SysUser> userList, Boolean isUpdateSupport, String operName) {
-        if (StringUtils.isNull(userList) || userList.isEmpty()) {
-            throw new ServiceException("导入用户数据不能为空！");
-        }
-        int successNum = 0;
-        int failureNum = 0;
-        StringBuilder successMsg = new StringBuilder();
-        StringBuilder failureMsg = new StringBuilder();
-        for (SysUser user : userList) {
-            try {
-                // 验证是否存在这个用户
-                SysUser u = userMapper.selectUserByUserName(user.getUserName());
-                if (StringUtils.isNull(u)) {
-                    BeanValidators.validateWithException(validator, user);
-                    deptService.checkDeptDataScope(user.getDeptId());
-                    configService.selectConfigByKey("sys.user.initPassword")
-                            .subscribe(password -> user.setPassword(SecurityUtils.encryptPassword(password)));
-                    user.setCreateBy(operName);
-                    userMapper.insertUser(user);
-                    successNum++;
-                    successMsg.append("<br/>").append(successNum).append("、账号 ").append(user.getUserName()).append(" 导入成功");
-                } else if (isUpdateSupport) {
-                    BeanValidators.validateWithException(validator, user);
-                    checkUserAllowed(u);
-                    checkUserDataScope(u.getUserId());
-                    deptService.checkDeptDataScope(user.getDeptId());
-                    user.setUserId(u.getUserId());
-                    user.setUpdateBy(operName);
-                    userMapper.updateUser(user);
-                    successNum++;
-                    successMsg.append("<br/>").append(successNum).append("、账号 ").append(user.getUserName()).append(" 更新成功");
-                } else {
-                    failureNum++;
-                    failureMsg.append("<br/>").append(failureNum).append("、账号 ").append(user.getUserName()).append(" 已存在");
-                }
-            } catch (Exception e) {
-                failureNum++;
-                String msg = "<br/>" + failureNum + "、账号 " + user.getUserName() + " 导入失败：";
-                failureMsg.append(msg).append(e.getMessage());
-                log.error(msg, e);
-            }
-        }
-        if (failureNum > 0) {
-            failureMsg.insert(0, "很抱歉，导入失败！共 " + failureNum + " 条数据格式不正确，错误如下：");
-            throw new ServiceException(failureMsg.toString());
-        } else {
-            successMsg.insert(0, "恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
-        }
-        return successMsg.toString();
-    }
 }

@@ -37,7 +37,7 @@ public interface SysRoleService {
     /**
      * 检查角色是否有数据权限
      */
-    void checkRoleDataScope(Long... roleIds);
+    void checkRoleDataScope(List<Long> roleIds);
 
     /**
      * 新增角色

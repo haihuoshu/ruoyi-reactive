@@ -26,6 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -68,8 +69,9 @@ public class SysRoleServiceImpl implements SysRoleService {
      */
     @Override
     public Mono<SysRoleVO> selectRoleById(Long roleId) {
-        return Mono.fromRunnable(() -> this.checkRoleDataScope(roleId))
-                .then(sysRoleRepository.selectOneByRoleId(roleId))
+        this.checkRoleDataScope(Collections.singletonList(roleId));
+
+        return sysRoleRepository.selectOneByRoleId(roleId)
                 .switchIfEmpty(ServiceException.monoInstance("角色不存在"))
                 .map(sysRoleMapper::toVo);
     }
@@ -78,7 +80,7 @@ public class SysRoleServiceImpl implements SysRoleService {
      * 检查角色是否有数据权限
      */
     @Override
-    public void checkRoleDataScope(Long... roleIds) {
+    public void checkRoleDataScope(List<Long> roleIds) {
         ReactiveSecurityUtils.getUserId()
                 .flatMap(userId -> {
                     if (ReactiveSecurityUtils.isNotAdmin(userId)) {
@@ -165,7 +167,7 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Override
     public Mono<Void> updateRole(SysRoleUpdateDTO dto) {
         this.checkRoleAllowed(new SysRole(dto.getRoleId()));
-        this.checkRoleDataScope(dto.getRoleId());
+        this.checkRoleDataScope(Collections.singletonList(dto.getRoleId()));
 
         SysRole entity = sysRoleMapper.toEntity(dto);
 
@@ -194,7 +196,7 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Override
     public Mono<Void> updateRoleStatus(SysRoleUpdateDTO dto) {
         this.checkRoleAllowed(new SysRole(dto.getRoleId()));
-        this.checkRoleDataScope(dto.getRoleId());
+        this.checkRoleDataScope(Collections.singletonList(dto.getRoleId()));
 
         SysRole entity = sysRoleMapper.toEntity(dto);
 
@@ -214,7 +216,7 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Transactional
     public Mono<Void> updateDataScope(SysRoleUpdateDTO dto) {
         this.checkRoleAllowed(new SysRole(dto.getRoleId()));
-        this.checkRoleDataScope(dto.getRoleId());
+        this.checkRoleDataScope(Collections.singletonList(dto.getRoleId()));
 
         SysRole entity = sysRoleMapper.toEntity(dto);
 
@@ -249,7 +251,7 @@ public class SysRoleServiceImpl implements SysRoleService {
         return sysRoleRepository.selectListByRoleIds(roleIds)
                 .flatMap(role -> {
                     checkRoleAllowed(new SysRole(role.getRoleId()));
-                    checkRoleDataScope(role.getRoleId());
+                    checkRoleDataScope(Collections.singletonList(role.getRoleId()));
 
                     return sysUserRoleRepository.selectCountByRoleId(role.getRoleId())
                             .flatMap(count -> {

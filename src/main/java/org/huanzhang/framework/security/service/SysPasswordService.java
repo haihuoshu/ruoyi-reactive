@@ -1,18 +1,18 @@
 package org.huanzhang.framework.security.service;
 
-import java.util.concurrent.TimeUnit;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Component;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.exception.user.UserPasswordNotMatchException;
 import org.huanzhang.common.exception.user.UserPasswordRetryLimitExceedException;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.framework.redis.RedisCache;
 import org.huanzhang.framework.security.context.AuthenticationContextHolder;
-import org.huanzhang.project.system.domain.SysUser;
+import org.huanzhang.project.system.entity.SysUser;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * 登录密码方法
@@ -51,7 +51,7 @@ public class SysPasswordService {
             retryCount = 0;
         }
 
-        if (retryCount >= Integer.valueOf(maxRetryCount).intValue()) {
+        if (retryCount >= maxRetryCount) {
             throw new UserPasswordRetryLimitExceedException(maxRetryCount, lockTime);
         }
 

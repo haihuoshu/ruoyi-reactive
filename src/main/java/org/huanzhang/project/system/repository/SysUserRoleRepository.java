@@ -20,18 +20,14 @@ public interface SysUserRoleRepository {
     Mono<Long> selectCountByRoleId(Long roleId);
 
     /**
-     * 通过用户ID删除用户和角色关联
-     *
-     * @param userId 用户ID
+     * 通过用户ID删除
      */
-    void deleteUserRoleByUserId(Long userId);
+    Mono<Long> deleteByUserIds(List<Long> userIds);
 
     /**
-     * 批量删除用户和角色关联
-     *
-     * @param ids 需要删除的数据ID
+     * 通过用户ID删除
      */
-    void deleteUserRole(Long[] ids);
+    Mono<Long> deleteByUserId(Long userId);
 
     /**
      * 批量新增用户角色信息
@@ -57,5 +53,7 @@ public interface SysUserRoleRepository {
      * @return 结果
      */
     int deleteUserRoleInfos(@Param("roleId") Long roleId, @Param("userIds") Long[] userIds);
+
+    Mono<Long> insert(SysUserRole userRole);
 
 }

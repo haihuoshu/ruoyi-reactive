@@ -1,12 +1,11 @@
-package org.huanzhang.project.system.entity;
+package org.huanzhang.project.system.entity.impl;
 
 import com.querydsl.core.annotations.Generated;
-import com.querydsl.core.types.Path;
-import com.querydsl.core.types.PathMetadata;
 import com.querydsl.core.types.dsl.DateTimePath;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.sql.ColumnMetadata;
+import org.huanzhang.project.system.entity.SysUser;
 
 import java.sql.Types;
 
@@ -14,15 +13,11 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 
 
 /**
- * QSysUser is a Querydsl query type for SysUser
+ * QSysUser is a Querydsl query type for QSysUser
  */
 @SuppressWarnings("this-escape")
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
 public class QSysUser extends com.querydsl.sql.RelationalPathBase<SysUser> {
-
-    private static final long serialVersionUID = -1878105647;
-
-    public static final QSysUser sysUser = new QSysUser("sys_user");
 
     public final StringPath avatar = createString("avatar");
 
@@ -68,26 +63,6 @@ public class QSysUser extends com.querydsl.sql.RelationalPathBase<SysUser> {
 
     public QSysUser(String variable) {
         super(SysUser.class, forVariable(variable), "null", "sys_user");
-        addMetadata();
-    }
-
-    public QSysUser(String variable, String schema, String table) {
-        super(SysUser.class, forVariable(variable), schema, table);
-        addMetadata();
-    }
-
-    public QSysUser(String variable, String schema) {
-        super(SysUser.class, forVariable(variable), schema, "sys_user");
-        addMetadata();
-    }
-
-    public QSysUser(Path<? extends SysUser> path) {
-        super(path.getType(), path.getMetadata(), "null", "sys_user");
-        addMetadata();
-    }
-
-    public QSysUser(PathMetadata metadata) {
-        super(SysUser.class, metadata, "null", "sys_user");
         addMetadata();
     }
 

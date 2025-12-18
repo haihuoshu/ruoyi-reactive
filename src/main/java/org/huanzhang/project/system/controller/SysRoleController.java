@@ -15,13 +15,13 @@ import org.huanzhang.framework.web.domain.AjaxResult;
 import org.huanzhang.framework.web.domain.ListResponse;
 import org.huanzhang.framework.web.domain.PageResponse;
 import org.huanzhang.framework.web.page.TableDataInfo;
-import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.dto.SysRoleInsertDTO;
 import org.huanzhang.project.system.dto.SysRoleUpdateDTO;
+import org.huanzhang.project.system.dto.SysUserInsertDTO;
 import org.huanzhang.project.system.entity.SysUserRole;
 import org.huanzhang.project.system.query.SysRoleQuery;
-import org.huanzhang.project.system.service.ISysUserService;
 import org.huanzhang.project.system.service.SysRoleService;
+import org.huanzhang.project.system.service.SysUserService;
 import org.huanzhang.project.system.vo.SysRoleVO;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +29,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
 
 @Tag(name = "角色管理")
@@ -41,7 +42,7 @@ public class SysRoleController extends BaseController {
     private final SysRoleService sysRoleService;
 
     @Resource
-    private ISysUserService userService;
+    private SysUserService userService;
 
     @Operation(summary = "获取角色选择框列表")
     @GetMapping("/optionselect")
@@ -131,18 +132,18 @@ public class SysRoleController extends BaseController {
     @Operation(summary = "查询已分配用户角色列表")
     @PreAuthorize("hasAuthority('system:role:list')")
     @GetMapping("/authUser/allocatedList")
-    public TableDataInfo allocatedList(SysUser user) {
+    public TableDataInfo allocatedList(SysUserInsertDTO user) {
         startPage();
-        List<SysUser> list = userService.selectAllocatedList(user);
+        List<SysUserInsertDTO> list = userService.selectAllocatedList(user);
         return getDataTable(list);
     }
 
     @Operation(summary = "查询未分配用户角色列表")
     @PreAuthorize("hasAuthority('system:role:list')")
     @GetMapping("/authUser/unallocatedList")
-    public TableDataInfo unallocatedList(SysUser user) {
+    public TableDataInfo unallocatedList(SysUserInsertDTO user) {
         startPage();
-        List<SysUser> list = userService.selectUnallocatedList(user);
+        List<SysUserInsertDTO> list = userService.selectUnallocatedList(user);
         return getDataTable(list);
     }
 
@@ -167,7 +168,7 @@ public class SysRoleController extends BaseController {
     @Log(title = "角色管理", businessType = BusinessType.GRANT)
     @PutMapping("/authUser/selectAll")
     public AjaxResult selectAuthUserAll(Long roleId, Long[] userIds) {
-        sysRoleService.checkRoleDataScope(roleId);
+        sysRoleService.checkRoleDataScope(Collections.singletonList(roleId));
         return toAjax(sysRoleService.insertAuthUsers(roleId, userIds));
     }
 

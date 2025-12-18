@@ -1,12 +1,11 @@
-package org.huanzhang.project.system.entity;
+package org.huanzhang.project.system.entity.impl;
 
 import com.querydsl.core.annotations.Generated;
-import com.querydsl.core.types.Path;
-import com.querydsl.core.types.PathMetadata;
 import com.querydsl.core.types.dsl.DateTimePath;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.sql.ColumnMetadata;
+import org.huanzhang.project.system.entity.SysDept;
 
 import java.sql.Types;
 
@@ -19,10 +18,6 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 @SuppressWarnings("this-escape")
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
 public class QSysDept extends com.querydsl.sql.RelationalPathBase<SysDept> {
-
-    private static final long serialVersionUID = -1878625205;
-
-    public static final QSysDept sysDept = new QSysDept("sys_dept");
 
     public final StringPath ancestors = createString("ancestors");
 
@@ -56,26 +51,6 @@ public class QSysDept extends com.querydsl.sql.RelationalPathBase<SysDept> {
 
     public QSysDept(String variable) {
         super(SysDept.class, forVariable(variable), "null", "sys_dept");
-        addMetadata();
-    }
-
-    public QSysDept(String variable, String schema, String table) {
-        super(SysDept.class, forVariable(variable), schema, table);
-        addMetadata();
-    }
-
-    public QSysDept(String variable, String schema) {
-        super(SysDept.class, forVariable(variable), schema, "sys_dept");
-        addMetadata();
-    }
-
-    public QSysDept(Path<? extends SysDept> path) {
-        super(path.getType(), path.getMetadata(), "null", "sys_dept");
-        addMetadata();
-    }
-
-    public QSysDept(PathMetadata metadata) {
-        super(SysDept.class, metadata, "null", "sys_dept");
         addMetadata();
     }
 

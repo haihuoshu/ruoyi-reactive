@@ -1,212 +1,105 @@
 package org.huanzhang.project.system.entity;
 
-import com.querydsl.core.annotations.Generated;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.huanzhang.framework.r2dbc.entity.AbstractAuditable;
+
+import java.util.Date;
+import java.util.List;
 
 /**
- * SysUser is a Querydsl bean type
+ * 用户表 sys_user
+ *
+ * @author haihuoshu
+ * @version 2025-12-17
  */
-@SuppressWarnings("ALL")
-@Generated("com.querydsl.codegen.BeanSerializer")
-public class SysUser {
+@Data
+@NoArgsConstructor
+public class SysUser extends AbstractAuditable {
 
-    private String avatar;
-
-    private String createBy;
-
-    private java.time.LocalDateTime createTime;
-
-    private String delFlag;
-
-    private Long deptId;
-
-    private String email;
-
-    private java.time.LocalDateTime loginDate;
-
-    private String loginIp;
-
-    private String nickName;
-
-    private String password;
-
-    private String phonenumber;
-
-    private java.time.LocalDateTime pwdUpdateDate;
-
-    private String remark;
-
-    private String sex;
-
-    private String status;
-
-    private String updateBy;
-
-    private java.time.LocalDateTime updateTime;
-
+    /**
+     * 用户ID
+     */
     private Long userId;
-
+    /**
+     * 部门ID
+     */
+    private Long deptId;
+    /**
+     * 用户账号
+     */
     private String userName;
+    /**
+     * 用户昵称
+     */
+    private String nickName;
+    /**
+     * 用户邮箱
+     */
+    private String email;
+    /**
+     * 手机号码
+     */
+    private String phonenumber;
+    /**
+     * 用户性别
+     */
+    private String sex;
+    /**
+     * 用户头像
+     */
+    private String avatar;
+    /**
+     * 密码
+     */
+    private String password;
+    /**
+     * 账号状态（0正常 1停用）
+     */
+    private String status;
+    /**
+     * 删除标志（0代表存在 2代表删除）
+     */
+    private String delFlag;
+    /**
+     * 最后登录IP
+     */
+    private String loginIp;
+    /**
+     * 最后登录时间
+     */
+    private Date loginDate;
+    /**
+     * 密码最后更新时间
+     */
+    private Date pwdUpdateDate;
+    /**
+     * 角色对象
+     */
+    private List<SysRole> roles;
+    /**
+     * 角色组
+     */
+    private Long[] roleIds;
+    /**
+     * 岗位组
+     */
+    private Long[] postIds;
+    /**
+     * 角色ID
+     */
+    private Long roleId;
 
-    private String userType;
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
-    public String getCreateBy() {
-        return createBy;
-    }
-
-    public void setCreateBy(String createBy) {
-        this.createBy = createBy;
-    }
-
-    public java.time.LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(java.time.LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public String getDelFlag() {
-        return delFlag;
-    }
-
-    public void setDelFlag(String delFlag) {
-        this.delFlag = delFlag;
-    }
-
-    public Long getDeptId() {
-        return deptId;
-    }
-
-    public void setDeptId(Long deptId) {
-        this.deptId = deptId;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public java.time.LocalDateTime getLoginDate() {
-        return loginDate;
-    }
-
-    public void setLoginDate(java.time.LocalDateTime loginDate) {
-        this.loginDate = loginDate;
-    }
-
-    public String getLoginIp() {
-        return loginIp;
-    }
-
-    public void setLoginIp(String loginIp) {
-        this.loginIp = loginIp;
-    }
-
-    public String getNickName() {
-        return nickName;
-    }
-
-    public void setNickName(String nickName) {
-        this.nickName = nickName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getPhonenumber() {
-        return phonenumber;
-    }
-
-    public void setPhonenumber(String phonenumber) {
-        this.phonenumber = phonenumber;
-    }
-
-    public java.time.LocalDateTime getPwdUpdateDate() {
-        return pwdUpdateDate;
-    }
-
-    public void setPwdUpdateDate(java.time.LocalDateTime pwdUpdateDate) {
-        this.pwdUpdateDate = pwdUpdateDate;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
-    public void setRemark(String remark) {
-        this.remark = remark;
-    }
-
-    public String getSex() {
-        return sex;
-    }
-
-    public void setSex(String sex) {
-        this.sex = sex;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getUpdateBy() {
-        return updateBy;
-    }
-
-    public void setUpdateBy(String updateBy) {
-        this.updateBy = updateBy;
-    }
-
-    public java.time.LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(java.time.LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
+    public SysUser(Long userId) {
         this.userId = userId;
     }
 
-    public String getUserName() {
-        return userName;
+    public boolean isNotAdmin() {
+        return !isAdmin(this.userId);
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getUserType() {
-        return userType;
-    }
-
-    public void setUserType(String userType) {
-        this.userType = userType;
+    public static boolean isAdmin(Long userId) {
+        return userId != null && 1L == userId;
     }
 
 }

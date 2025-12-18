@@ -3,7 +3,7 @@ package org.huanzhang.framework.security;
 import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.Getter;
 import lombok.Setter;
-import org.huanzhang.project.system.domain.SysUser;
+import org.huanzhang.project.system.entity.SysUser;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,12 +1,11 @@
-package org.huanzhang.project.system.entity;
+package org.huanzhang.project.system.entity.impl;
 
 import com.querydsl.core.annotations.Generated;
-import com.querydsl.core.types.Path;
-import com.querydsl.core.types.PathMetadata;
 import com.querydsl.core.types.dsl.DateTimePath;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.sql.ColumnMetadata;
+import org.huanzhang.project.system.entity.SysConfig;
 
 import java.sql.Types;
 
@@ -16,13 +15,8 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 /**
  * QSysConfig is a Querydsl query type for SysConfig
  */
-@SuppressWarnings("ALL")
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
 public class QSysConfig extends com.querydsl.sql.RelationalPathBase<SysConfig> {
-
-    private static final long serialVersionUID = -1492021304;
-
-    public static final QSysConfig sysConfig = new QSysConfig("sys_config");
 
     public final NumberPath<Long> configId = createNumber("configId", Long.class);
 
@@ -48,26 +42,6 @@ public class QSysConfig extends com.querydsl.sql.RelationalPathBase<SysConfig> {
 
     public QSysConfig(String variable) {
         super(SysConfig.class, forVariable(variable), "null", "sys_config");
-        addMetadata();
-    }
-
-    public QSysConfig(String variable, String schema, String table) {
-        super(SysConfig.class, forVariable(variable), schema, table);
-        addMetadata();
-    }
-
-    public QSysConfig(String variable, String schema) {
-        super(SysConfig.class, forVariable(variable), schema, "sys_config");
-        addMetadata();
-    }
-
-    public QSysConfig(Path<? extends SysConfig> path) {
-        super(path.getType(), path.getMetadata(), "null", "sys_config");
-        addMetadata();
-    }
-
-    public QSysConfig(PathMetadata metadata) {
-        super(SysConfig.class, metadata, "null", "sys_config");
         addMetadata();
     }
 

@@ -5,21 +5,21 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 用户和岗位关联表 sys_user_post
+ * 角色和菜单关联表 sys_role_menu
  *
  * @author haihuoshu
  * @version 2025-12-15
  */
 @Data
-public class SysUserPost implements Serializable {
+public class SysRoleMenu implements Serializable {
 
     /**
-     * 用户ID
+     * 角色ID
      */
-    private Long userId;
+    private Long roleId;
     /**
-     * 岗位ID
+     * 菜单ID
      */
-    private Long postId;
+    private Long menuId;
 
 }

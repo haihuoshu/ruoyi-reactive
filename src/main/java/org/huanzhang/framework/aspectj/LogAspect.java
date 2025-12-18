@@ -23,7 +23,6 @@ import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.security.ReactiveExchangeContextHolder;
 import org.huanzhang.framework.security.ReactiveSecurityUtils;
 import org.huanzhang.project.monitor.domain.SysOperLog;
-import org.huanzhang.project.system.domain.SysUser;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.BindingResult;
@@ -111,10 +110,10 @@ public class LogAspect {
         operLog.setOperIp(ip);
         operLog.setOperUrl(StringUtils.substring(request.getURI().getPath(), 0, 255));
         operLog.setOperName(loginUser.getUsername());
-        SysUser currentUser = loginUser.getUser();
-        if (StringUtils.isNotNull(currentUser) && StringUtils.isNotNull(currentUser.getDept())) {
-            operLog.setDeptName(currentUser.getDept().getDeptName());
-        }
+//        SysUser currentUser = loginUser.getUser();
+//        if (StringUtils.isNotNull(currentUser) && StringUtils.isNotNull(currentUser.getDept())) {
+//            operLog.setDeptName(currentUser.getDept().getDeptName());
+//        }
 
         if (e != null) {
             operLog.setStatus(BusinessStatus.FAIL.ordinal());

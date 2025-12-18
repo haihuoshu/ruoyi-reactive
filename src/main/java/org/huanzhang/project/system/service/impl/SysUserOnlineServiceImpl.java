@@ -1,10 +1,10 @@
 package org.huanzhang.project.system.service.impl;
 
-import org.springframework.stereotype.Service;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.project.monitor.domain.SysUserOnline;
 import org.huanzhang.project.system.service.ISysUserOnlineService;
+import org.springframework.stereotype.Service;
 
 /**
  * 在线用户 服务层处理
@@ -78,9 +78,9 @@ public class SysUserOnlineServiceImpl implements ISysUserOnlineService {
         sysUserOnline.setBrowser(user.getBrowser());
         sysUserOnline.setOs(user.getOs());
         sysUserOnline.setLoginTime(user.getLoginTime());
-        if (StringUtils.isNotNull(user.getUser().getDept())) {
-            sysUserOnline.setDeptName(user.getUser().getDept().getDeptName());
-        }
+//        if (StringUtils.isNotNull(user.getUser().getDept())) {
+//            sysUserOnline.setDeptName(user.getUser().getDept().getDeptName());
+//        }
         return sysUserOnline;
     }
 }

@@ -1,8 +1,5 @@
 package org.huanzhang.framework.config;
 
-import java.io.IOException;
-import java.util.Objects;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -13,6 +10,9 @@ import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.Sensitive;
 import org.huanzhang.framework.aspectj.lang.enums.DesensitizedType;
 import org.huanzhang.framework.security.LoginUser;
+
+import java.io.IOException;
+import java.util.Objects;
 
 /**
  * 数据脱敏序列化过滤
@@ -49,7 +49,7 @@ public class SensitiveJsonSerializer extends JsonSerializer<String> implements C
         try {
             LoginUser securityUser = SecurityUtils.getLoginUser();
             // 管理员不脱敏
-            return !securityUser.getUser().isAdmin();
+            return securityUser.getUser().isNotAdmin();
         } catch (Exception e) {
             return true;
         }

@@ -34,12 +34,24 @@ public class SysUserRoleRepositoryImpl implements SysUserRoleRepository {
                 .fetchCount();
     }
 
+    /**
+     * 通过用户ID删除
+     */
     @Override
-    public void deleteUserRoleByUserId(Long userId) {
+    public Mono<Long> deleteByUserIds(List<Long> userIds) {
+        return queryFactory.delete(tb_1_)
+                .where(tb_1_.userId.in(userIds))
+                .execute();
     }
 
+    /**
+     * 通过用户ID删除
+     */
     @Override
-    public void deleteUserRole(Long[] ids) {
+    public Mono<Long> deleteByUserId(Long userId) {
+        return queryFactory.delete(tb_1_)
+                .where(tb_1_.userId.eq(userId))
+                .execute();
     }
 
     @Override
@@ -55,5 +67,12 @@ public class SysUserRoleRepositoryImpl implements SysUserRoleRepository {
     @Override
     public int deleteUserRoleInfos(Long roleId, Long[] userIds) {
         return 0;
+    }
+
+    @Override
+    public Mono<Long> insert(SysUserRole userRole) {
+        return queryFactory.insert(tb_1_)
+                .populate(userRole)
+                .execute();
     }
 }

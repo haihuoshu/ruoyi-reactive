@@ -11,8 +11,8 @@ import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.DataScope;
 import org.huanzhang.framework.security.ReactiveSecurityUtils;
 import org.huanzhang.framework.web.domain.AbstractDataScope;
-import org.huanzhang.project.system.domain.SysUser;
 import org.huanzhang.project.system.entity.SysRole;
+import org.huanzhang.project.system.entity.SysUser;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -65,7 +65,7 @@ public class DataScopeAspect {
                     if (StringUtils.isNotNull(loginUser)) {
                         SysUser currentUser = loginUser.getUser();
                         // 如果是超级管理员，则不过滤数据
-                        if (StringUtils.isNotNull(currentUser) && !currentUser.isAdmin()) {
+                        if (StringUtils.isNotNull(currentUser) && currentUser.isNotAdmin()) {
                             return dataScopeFilter(joinPoint, currentUser, controllerDataScope.deptAlias(), controllerDataScope.userAlias());
                         }
                     }
