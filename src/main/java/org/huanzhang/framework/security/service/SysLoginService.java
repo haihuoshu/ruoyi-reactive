@@ -1,6 +1,6 @@
 package org.huanzhang.framework.security.service;
 
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.constant.UserConstants;
@@ -9,9 +9,9 @@ import org.huanzhang.common.exception.user.*;
 import org.huanzhang.common.utils.MessageUtils;
 import org.huanzhang.common.utils.StringUtils;
 import org.huanzhang.common.utils.ip.IpUtils;
-import org.huanzhang.framework.manager.factory.AsyncFactory;
 import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.security.LoginUser;
+import org.huanzhang.framework.security.SysAccessLogApi;
 import org.huanzhang.framework.security.context.AuthenticationContextHolder;
 import org.huanzhang.project.system.dto.SysUserInsertDTO;
 import org.huanzhang.project.system.service.SysConfigService;
@@ -29,21 +29,20 @@ import reactor.core.publisher.Mono;
  * @author ruoyi
  */
 @Component
+@RequiredArgsConstructor
 public class SysLoginService {
-    @Resource
-    private TokenService tokenService;
 
-    @Resource
-    private ReactiveAuthenticationManager authenticationManager;
+    private final SysUserService sysUserService;
 
-    @Resource
-    private ReactiveRedisUtils<String> reactiveRedisUtils;
+    private final SysConfigService sysConfigService;
 
-    @Resource
-    private SysUserService userService;
+    private final SysAccessLogApi sysAccessLogApi;
 
-    @Resource
-    private SysConfigService configService;
+    private final TokenService tokenService;
+
+    private final ReactiveAuthenticationManager reactiveAuthenticationManager;
+
+    private final ReactiveRedisUtils<String> reactiveRedisUtils;
 
     /**
      * 登录验证
@@ -63,23 +62,25 @@ public class SysLoginService {
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
         AuthenticationContextHolder.setContext(authenticationToken);
         // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
-        return authenticationManager.authenticate(authenticationToken)
+        return reactiveAuthenticationManager.authenticate(authenticationToken)
                 .onErrorResume(e -> {
                     if (e instanceof BadCredentialsException) {
-                        AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match"));
-                        throw new UserPasswordNotMatchException();
+                        return sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match"))
+                                .then(Mono.error(new UserPasswordNotMatchException()));
                     } else {
-                        AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, e.getMessage());
-                        throw new ServiceException(e.getMessage());
+                        return sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, e.getMessage())
+                                .then(Mono.error(new ServiceException(e.getMessage())));
                     }
                 })
-                .map(authentication -> {
-                    AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success"));
-
-                    LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-                    recordLoginInfo(request, loginUser.getUserId());
-                    // 生成token
-                    return tokenService.createToken(request, loginUser);
+                .flatMap(authentication -> {
+                    // 记录日志
+                    return sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success"))
+                            .then(Mono.fromCallable(() -> {
+                                LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+                                recordLoginInfo(request, loginUser.getUserId());
+                                // 生成token
+                                return tokenService.createToken(request, loginUser);
+                            }));
                 });
     }
 
@@ -91,22 +92,21 @@ public class SysLoginService {
      * @param uuid     唯一标识
      */
     public void validateCaptcha(ServerHttpRequest request, String username, String code, String uuid) {
-        configService.selectCaptchaEnabled()
+        sysConfigService.selectCaptchaEnabled()
                 .flatMap(captchaEnabled -> {
                     if (captchaEnabled) {
                         String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.nvl(uuid, "");
                         return reactiveRedisUtils.getCacheObject(verifyKey)
-                                .switchIfEmpty(Mono.defer(() -> {
-                                    AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"));
-                                    throw new CaptchaExpireException();
-                                }))
+                                .switchIfEmpty(sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"))
+                                        .then(Mono.error(new CaptchaExpireException()))
+                                )
                                 .flatMap(captcha -> {
                                     // 删除缓存
                                     return reactiveRedisUtils.deleteCache(verifyKey)
                                             .then(Mono.defer(() -> {
                                                 if (!code.equalsIgnoreCase(captcha)) {
-                                                    AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.error"));
-                                                    return Mono.error(new CaptchaException());
+                                                    return sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.error"))
+                                                            .then(Mono.error(new CaptchaException()));
                                                 }
                                                 return Mono.empty();
                                             }));
@@ -127,29 +127,31 @@ public class SysLoginService {
     public void loginPreCheck(ServerHttpRequest request, String username, String password) {
         // 用户名或密码为空 错误
         if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
-            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("not.null"));
+            sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("not.null")).subscribe();
             throw new UserNotExistsException();
         }
         // 密码如果不在指定范围内 错误
         if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
                 || password.length() > UserConstants.PASSWORD_MAX_LENGTH) {
-            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match"));
+            sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match")).subscribe();
             throw new UserPasswordNotMatchException();
         }
         // 用户名不在指定范围内 错误
         if (username.length() < UserConstants.USERNAME_MIN_LENGTH
                 || username.length() > UserConstants.USERNAME_MAX_LENGTH) {
-            AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match"));
+            sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("user.password.not.match")).subscribe();
             throw new UserPasswordNotMatchException();
         }
         // IP黑名单校验
-        configService.selectConfigByKey("sys.login.blackIPList")
-                .subscribe(blackStr -> {
+        sysConfigService.selectConfigByKey("sys.login.blackIPList")
+                .flatMap(blackStr -> {
                     if (IpUtils.isMatchedIp(blackStr, IpUtils.getIpAddr(request))) {
-                        AsyncFactory.recordLogininfor(request, username, Constants.LOGIN_FAIL, MessageUtils.message("login.blocked"));
-                        throw new BlackListException();
+                        return sysAccessLogApi.insertAccessLog(request, username, Constants.LOGIN_FAIL, MessageUtils.message("login.blocked"))
+                                .then(Mono.error(new BlackListException()));
                     }
-                });
+                    return Mono.empty();
+                })
+                .subscribe();
     }
 
     /**
@@ -162,6 +164,6 @@ public class SysLoginService {
         sysUserInsertDTO.setUserId(userId);
 //        sysUserInsertDTO.setLoginIp(IpUtils.getIpAddr(request));
 //        sysUserInsertDTO.setLoginDate(DateUtils.getNowDate());
-        userService.updateUserProfile(sysUserInsertDTO);
+        sysUserService.updateUserProfile(sysUserInsertDTO);
     }
 }

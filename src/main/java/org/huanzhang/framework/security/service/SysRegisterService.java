@@ -1,6 +1,6 @@
 package org.huanzhang.framework.security.service;
 
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.Constants;
 import org.huanzhang.common.constant.UserConstants;
@@ -9,13 +9,13 @@ import org.huanzhang.common.exception.user.CaptchaExpireException;
 import org.huanzhang.common.utils.MessageUtils;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.common.utils.StringUtils;
-import org.huanzhang.framework.manager.AsyncManager;
-import org.huanzhang.framework.manager.factory.AsyncFactory;
 import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.framework.security.RegisterBody;
+import org.huanzhang.framework.security.SysAccessLogApi;
 import org.huanzhang.project.system.dto.SysUserInsertDTO;
 import org.huanzhang.project.system.service.SysConfigService;
 import org.huanzhang.project.system.service.SysUserService;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -25,26 +25,27 @@ import reactor.core.publisher.Mono;
  * @author ruoyi
  */
 @Component
+@RequiredArgsConstructor
 public class SysRegisterService {
-    @Resource
-    private SysUserService userService;
 
-    @Resource
-    private SysConfigService configService;
+    private final SysUserService sysUserService;
 
-    @Resource
-    private ReactiveRedisUtils<String> reactiveRedisUtils;
+    private final SysConfigService sysConfigService;
+
+    private final SysAccessLogApi sysAccessLogApi;
+
+    private final ReactiveRedisUtils<String> reactiveRedisUtils;
 
     /**
      * 注册
      */
-    public Mono<String> register(RegisterBody registerBody) {
+    public Mono<String> register(RegisterBody registerBody, ServerHttpRequest request) {
         String username = registerBody.getUsername(), password = registerBody.getPassword();
         SysUserInsertDTO sysUserInsertDTO = new SysUserInsertDTO();
         sysUserInsertDTO.setUserName(username);
 
         // 验证码开关
-        return configService.selectCaptchaEnabled()
+        return sysConfigService.selectCaptchaEnabled()
                 .flatMap(captchaEnabled -> {
                     if (captchaEnabled) {
                         validateCaptcha(registerBody.getCode(), registerBody.getUuid());
@@ -64,11 +65,8 @@ public class SysRegisterService {
                     } else {
                         sysUserInsertDTO.setNickName(username);
                         sysUserInsertDTO.setPassword(SecurityUtils.encryptPassword(password));
-                        return userService.insertUser(sysUserInsertDTO)
-                                .then(Mono.defer(() -> {
-                                    AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.REGISTER, MessageUtils.message("user.register.success")));
-                                    return Mono.empty();
-                                }))
+                        return sysUserService.insertUser(sysUserInsertDTO)
+                                .then(sysAccessLogApi.insertAccessLog(request, username, Constants.REGISTER, MessageUtils.message("user.register.success")))
                                 .thenReturn("");
                     }
                     return Mono.just(msg);

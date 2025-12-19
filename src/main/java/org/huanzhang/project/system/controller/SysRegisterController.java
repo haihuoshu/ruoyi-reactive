@@ -7,6 +7,7 @@ import org.huanzhang.framework.security.service.SysRegisterService;
 import org.huanzhang.framework.web.controller.BaseController;
 import org.huanzhang.framework.web.domain.AjaxResponse;
 import org.huanzhang.project.system.service.SysConfigService;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,13 +28,13 @@ public class SysRegisterController extends BaseController {
     private SysConfigService configService;
 
     @PostMapping("/register")
-    public Mono<AjaxResponse<Void>> register(@RequestBody RegisterBody user) {
+    public Mono<AjaxResponse<Void>> register(@RequestBody RegisterBody user, ServerHttpRequest request) {
         return configService.selectConfigByKey("sys.account.registerUser")
                 .flatMap(registerUser -> {
                     if (!("true".equals(registerUser))) {
                         return ServiceException.monoInstance("当前系统没有开启注册功能！");
                     }
-                    return registerService.register(user)
+                    return registerService.register(user, request)
                             .map(msg -> {
                                 if (org.apache.commons.lang3.StringUtils.isNotBlank(msg)) {
                                     return AjaxResponse.fail(msg);
