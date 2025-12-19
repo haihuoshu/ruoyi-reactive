@@ -10,6 +10,7 @@ import org.huanzhang.project.system.entity.SysAccessLog;
 import org.huanzhang.project.system.entity.impl.QSysAccessLog;
 import org.huanzhang.project.system.query.SysAccessLogQuery;
 import org.huanzhang.project.system.repository.SysAccessLogRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -75,8 +76,12 @@ public class SysAccessLogRepositoryImpl implements SysAccessLogRepository {
      */
     @Override
     public Flux<SysAccessLog> selectListByQuery(SysAccessLogQuery query) {
-        return getR2dbcQuery(query)
-                .fetch();
+        R2DBCQuery<SysAccessLog> r2dbcQuery = getR2dbcQuery(query);
+        if (ObjectUtils.allNotNull(query.getPageNum(), query.getPageSize())) {
+            PageRequest pageable = PageRequest.of(query.getPageNum() - 1, query.getPageSize());
+            r2dbcQuery.offset(pageable.getOffset()).limit(pageable.getPageSize());
+        }
+        return r2dbcQuery.fetch();
     }
 
     /**
