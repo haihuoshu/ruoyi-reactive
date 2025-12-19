@@ -19,10 +19,6 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
 public class QSysOperateLog extends com.querydsl.sql.RelationalPathBase<SysOperateLog> {
 
-    private static final long serialVersionUID = 380076787;
-
-    public static final QSysOperateLog sysOperLog = new QSysOperateLog("sys_oper_log");
-
     public final NumberPath<Integer> businessType = createNumber("businessType", Integer.class);
 
     public final NumberPath<Long> costTime = createNumber("costTime", Long.class);

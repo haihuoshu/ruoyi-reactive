@@ -1,27 +1,19 @@
 package org.huanzhang.framework.web.controller;
 
-import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
 import org.huanzhang.common.constant.HttpStatus;
-import org.huanzhang.common.core.text.Convert;
 import org.huanzhang.common.utils.DateUtils;
-import org.huanzhang.common.utils.PageUtils;
 import org.huanzhang.common.utils.SecurityUtils;
 import org.huanzhang.framework.security.LoginUser;
 import org.huanzhang.framework.web.domain.AjaxResult;
-import org.huanzhang.framework.web.domain.PageQuery;
 import org.huanzhang.framework.web.page.TableDataInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
 
 import java.beans.PropertyEditorSupport;
 import java.util.Date;
 import java.util.List;
-
-import static org.huanzhang.framework.web.page.TableSupport.*;
 
 /**
  * web层通用数据处理
@@ -46,36 +38,14 @@ public class BaseController {
     }
 
     /**
-     * 设置请求分页数据
-     */
-    protected void startPage() {
-        PageUtils.startPage();
-    }
-
-    /**
-     * 设置请求排序数据
-     */
-    protected void startPage(ServerHttpRequest request) {
-        PageQuery pageQuery = new PageQuery();
-        pageQuery.setPageNum(Convert.toInt(request.getQueryParams().getFirst(PAGE_NUM), 1));
-        pageQuery.setPageSize(Convert.toInt(request.getQueryParams().getFirst(PAGE_SIZE), 10));
-        pageQuery.setOrderByColumn(request.getQueryParams().getFirst(ORDER_BY_COLUMN));
-        pageQuery.setIsAsc(request.getQueryParams().getFirst(IS_ASC));
-        pageQuery.setReasonable(Convert.toBool(request.getQueryParams().getFirst(REASONABLE)));
-        //noinspection resource
-        PageHelper.startPage(pageQuery.getPageNum(), pageQuery.getPageSize(), pageQuery.getOrderBy()).setReasonable(pageQuery.getReasonable());
-    }
-
-    /**
      * 响应请求分页数据
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     protected TableDataInfo getDataTable(List<?> list) {
         TableDataInfo rspData = new TableDataInfo();
         rspData.setCode(HttpStatus.SUCCESS);
         rspData.setMsg("查询成功");
         rspData.setRows(list);
-        rspData.setTotal(new PageInfo(list).getTotal());
+        rspData.setTotal(list.size());
         return rspData;
     }
 
@@ -115,13 +85,6 @@ public class BaseController {
     }
 
     /**
-     * 返回警告消息
-     */
-    public AjaxResult warn(String message) {
-        return AjaxResult.warn(message);
-    }
-
-    /**
      * 响应返回结果
      *
      * @param rows 影响行数
@@ -129,16 +92,6 @@ public class BaseController {
      */
     protected AjaxResult toAjax(int rows) {
         return rows > 0 ? AjaxResult.success() : AjaxResult.error();
-    }
-
-    /**
-     * 响应返回结果
-     *
-     * @param result 结果
-     * @return 操作结果
-     */
-    protected AjaxResult toAjax(boolean result) {
-        return result ? success() : error();
     }
 
     /**

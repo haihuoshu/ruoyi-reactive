@@ -19,10 +19,6 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 @Generated("com.querydsl.sql.codegen.MetaDataSerializer")
 public class QSysAccessLog extends com.querydsl.sql.RelationalPathBase<SysAccessLog> {
 
-    private static final long serialVersionUID = 197011902;
-
-    public static final QSysAccessLog sysLogininfor = new QSysAccessLog("sys_logininfor");
-
     public final StringPath browser = createString("browser");
 
     public final NumberPath<Long> infoId = createNumber("infoId", Long.class);

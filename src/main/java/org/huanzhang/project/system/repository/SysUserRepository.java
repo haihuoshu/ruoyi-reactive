@@ -1,6 +1,5 @@
 package org.huanzhang.project.system.repository;
 
-import org.apache.ibatis.annotations.Param;
 import org.huanzhang.framework.r2dbc.repository.AuditableRepository;
 import org.huanzhang.project.system.dto.SysUserInsertDTO;
 import org.huanzhang.project.system.entity.SysUser;
@@ -86,7 +85,7 @@ public interface SysUserRepository extends AuditableRepository<SysUser> {
      * @param avatar   头像地址
      * @return 结果
      */
-    int updateUserAvatar(@Param("userName") String userName, @Param("avatar") String avatar);
+    int updateUserAvatar(String userName, String avatar);
 
     /**
      * 重置用户密码
@@ -95,5 +94,5 @@ public interface SysUserRepository extends AuditableRepository<SysUser> {
      * @param password 密码
      * @return 结果
      */
-    int resetUserPwd(@Param("userName") String userName, @Param("password") String password);
+    int resetUserPwd(String userName, String password);
 }

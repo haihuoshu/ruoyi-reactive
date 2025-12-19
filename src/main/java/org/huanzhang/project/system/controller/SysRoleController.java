@@ -133,7 +133,6 @@ public class SysRoleController extends BaseController {
     @PreAuthorize("hasAuthority('system:role:list')")
     @GetMapping("/authUser/allocatedList")
     public TableDataInfo allocatedList(SysUserInsertDTO user) {
-        startPage();
         List<SysUserInsertDTO> list = userService.selectAllocatedList(user);
         return getDataTable(list);
     }
@@ -142,7 +141,6 @@ public class SysRoleController extends BaseController {
     @PreAuthorize("hasAuthority('system:role:list')")
     @GetMapping("/authUser/unallocatedList")
     public TableDataInfo unallocatedList(SysUserInsertDTO user) {
-        startPage();
         List<SysUserInsertDTO> list = userService.selectUnallocatedList(user);
         return getDataTable(list);
     }

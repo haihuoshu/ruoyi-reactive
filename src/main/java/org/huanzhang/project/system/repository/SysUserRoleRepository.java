@@ -1,6 +1,5 @@
 package org.huanzhang.project.system.repository;
 
-import org.apache.ibatis.annotations.Param;
 import org.huanzhang.project.system.entity.SysUserRole;
 import reactor.core.publisher.Mono;
 
@@ -52,7 +51,7 @@ public interface SysUserRoleRepository {
      * @param userIds 需要删除的用户数据ID
      * @return 结果
      */
-    int deleteUserRoleInfos(@Param("roleId") Long roleId, @Param("userIds") Long[] userIds);
+    int deleteUserRoleInfos(Long roleId, Long[] userIds);
 
     Mono<Long> insert(SysUserRole userRole);
 
