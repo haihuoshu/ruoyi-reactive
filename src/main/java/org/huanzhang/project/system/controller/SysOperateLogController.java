@@ -2,7 +2,6 @@ package org.huanzhang.project.system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.utils.poi.ExcelUtil;
@@ -15,6 +14,7 @@ import org.huanzhang.project.system.query.SysOperateLogQuery;
 import org.huanzhang.project.system.service.SysOperateLogService;
 import org.huanzhang.project.system.vo.SysOperateLogVO;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +46,7 @@ public class SysOperateLogController extends BaseController {
     @Log(title = "操作日志", businessType = BusinessType.EXPORT)
     @PreAuthorize("hasAuthority('monitor:operlog:export')")
     @PostMapping("/export")
-    public void export(HttpServletResponse response, @ParameterObject SysOperateLogQuery query) {
+    public void export(ServerHttpResponse response, @ParameterObject SysOperateLogQuery query) {
         sysOperateLogService.selectOperateLogList(query)
                 .collectList()
                 .subscribe(list -> {

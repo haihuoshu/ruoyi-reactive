@@ -1,8 +1,6 @@
 package org.huanzhang.project.system.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ArrayUtils;
 import org.aspectj.lang.JoinPoint;
@@ -22,6 +20,7 @@ import org.huanzhang.project.system.repository.SysOperateLogRepository;
 import org.huanzhang.project.system.service.SysOperateLogService;
 import org.huanzhang.project.system.vo.SysOperateLogVO;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.multipart.MultipartFile;
@@ -206,7 +205,7 @@ public class SysOperateLogServiceImpl implements SysOperateLogService {
                 return entry.getValue() instanceof MultipartFile;
             }
         }
-        return o instanceof MultipartFile || o instanceof HttpServletRequest || o instanceof HttpServletResponse
+        return o instanceof MultipartFile || o instanceof ServerHttpRequest || o instanceof ServerHttpResponse
                 || o instanceof BindingResult;
     }
 }

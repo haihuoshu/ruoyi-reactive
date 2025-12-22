@@ -1,6 +1,5 @@
 package org.huanzhang.common.utils.poi;
 
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -30,6 +29,8 @@ import org.huanzhang.framework.web.domain.AjaxResult;
 import org.openxmlformats.schemas.drawingml.x2006.spreadsheetDrawing.CTMarker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -441,7 +442,7 @@ public class ExcelUtil<T> {
      * @param sheetName 工作表的名称
      * @return 结果
      */
-    public void exportExcel(HttpServletResponse response, List<T> list, String sheetName) {
+    public void exportExcel(ServerHttpResponse response, List<T> list, String sheetName) {
         exportExcel(response, list, sheetName, StringUtils.EMPTY);
     }
 
@@ -454,9 +455,8 @@ public class ExcelUtil<T> {
      * @param title     标题
      * @return 结果
      */
-    public void exportExcel(HttpServletResponse response, List<T> list, String sheetName, String title) {
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setCharacterEncoding("utf-8");
+    public void exportExcel(ServerHttpResponse response, List<T> list, String sheetName, String title) {
+        response.getHeaders().setContentType(MediaType.APPLICATION_OCTET_STREAM);
         this.init(list, sheetName, title, Type.EXPORT);
         exportExcel(response);
     }
@@ -486,36 +486,13 @@ public class ExcelUtil<T> {
     /**
      * 对list数据源将其里面的数据导入到excel表单
      *
-     * @param sheetName 工作表的名称
      * @return 结果
      */
-    public void importTemplateExcel(HttpServletResponse response, String sheetName) {
-        importTemplateExcel(response, sheetName, StringUtils.EMPTY);
-    }
-
-    /**
-     * 对list数据源将其里面的数据导入到excel表单
-     *
-     * @param sheetName 工作表的名称
-     * @param title     标题
-     * @return 结果
-     */
-    public void importTemplateExcel(HttpServletResponse response, String sheetName, String title) {
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setCharacterEncoding("utf-8");
-        this.init(null, sheetName, title, Type.IMPORT);
-        exportExcel(response);
-    }
-
-    /**
-     * 对list数据源将其里面的数据导入到excel表单
-     *
-     * @return 结果
-     */
-    public void exportExcel(HttpServletResponse response) {
-        try {
+    public void exportExcel(ServerHttpResponse response) {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             writeSheet();
-            wb.write(response.getOutputStream());
+            wb.write(os);
+            response.bufferFactory().wrap(os.toByteArray());
         } catch (Exception e) {
             log.error("导出Excel异常{}", e.getMessage());
         } finally {

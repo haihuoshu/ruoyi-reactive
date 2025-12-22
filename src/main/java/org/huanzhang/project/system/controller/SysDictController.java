@@ -2,7 +2,6 @@ package org.huanzhang.project.system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.utils.poi.ExcelUtil;
@@ -18,6 +17,7 @@ import org.huanzhang.project.system.query.SysDictQuery;
 import org.huanzhang.project.system.service.SysDictService;
 import org.huanzhang.project.system.vo.SysDictVO;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -49,7 +49,7 @@ public class SysDictController extends BaseController {
     @Log(title = "字典管理", businessType = BusinessType.EXPORT)
     @PreAuthorize("hasAuthority('system:dict:export')")
     @PostMapping("/export")
-    public void export(HttpServletResponse response, SysDictQuery query) {
+    public void export(ServerHttpResponse response, SysDictQuery query) {
         sysDictService.selectDictListByQuery(query)
                 .collectList()
                 .subscribe(list -> {
@@ -102,7 +102,7 @@ public class SysDictController extends BaseController {
     }
 
     @Operation(summary = "刷新字典缓存")
-    @PreAuthorize("@ss.hasPermi('system:dict:remove')")
+    @PreAuthorize("hasAuthority('system:dict:remove')")
     @Log(title = "字典管理", businessType = BusinessType.CLEAN)
     @DeleteMapping("/refreshCache")
     public Mono<AjaxResponse<Void>> refreshCache() {

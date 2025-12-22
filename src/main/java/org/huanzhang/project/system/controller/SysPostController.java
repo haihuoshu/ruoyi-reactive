@@ -2,7 +2,6 @@ package org.huanzhang.project.system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.utils.poi.ExcelUtil;
@@ -18,6 +17,7 @@ import org.huanzhang.project.system.query.SysPostQuery;
 import org.huanzhang.project.system.service.SysPostService;
 import org.huanzhang.project.system.vo.SysPostVO;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -49,7 +49,7 @@ public class SysPostController extends BaseController {
     @Log(title = "岗位管理", businessType = BusinessType.EXPORT)
     @PreAuthorize("hasAuthority('system:post:export')")
     @PostMapping("/export")
-    public void export(HttpServletResponse response, @ParameterObject SysPostQuery query) {
+    public void export(ServerHttpResponse response, @ParameterObject SysPostQuery query) {
         sysPostService.selectPostListByQuery(query)
                 .collectList()
                 .subscribe(list -> {

@@ -1,7 +1,5 @@
 package org.huanzhang.common.utils.file;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -11,14 +9,13 @@ import org.huanzhang.common.utils.uuid.IdUtils;
 import org.huanzhang.framework.config.RuoYiConfig;
 
 import java.io.*;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 /**
  * 文件处理工具类
  *
  * @author ruoyi
  */
+@SuppressWarnings("ALL")
 public class FileUtils {
     public static String FILENAME_PATTERN = "[a-zA-Z0-9_\\-\\|\\.\\u4e00-\\u9fa5]+";
 
@@ -126,65 +123,6 @@ public class FileUtils {
         return ArrayUtils.contains(MimeTypeUtils.DEFAULT_ALLOWED_EXTENSION, FileTypeUtils.getFileType(resource));
 
         // 不在允许下载的文件规则
-    }
-
-    /**
-     * 下载文件名重新编码
-     *
-     * @param request  请求对象
-     * @param fileName 文件名
-     * @return 编码后的文件名
-     */
-    public static String setFileDownloadHeader(HttpServletRequest request, String fileName) throws UnsupportedEncodingException {
-        final String agent = request.getHeader("USER-AGENT");
-        String filename = fileName;
-        if (agent.contains("MSIE")) {
-            // IE浏览器
-            filename = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-            filename = filename.replace("+", " ");
-        } else if (agent.contains("Firefox")) {
-            // 火狐浏览器
-            filename = new String(fileName.getBytes(), "ISO8859-1");
-        } else if (agent.contains("Chrome")) {
-            // google浏览器
-            filename = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        } else {
-            // 其它浏览器
-            filename = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        }
-        return filename;
-    }
-
-    /**
-     * 下载文件名重新编码
-     *
-     * @param response     响应对象
-     * @param realFileName 真实文件名
-     */
-    public static void setAttachmentResponseHeader(HttpServletResponse response, String realFileName) throws UnsupportedEncodingException {
-        String percentEncodedFileName = percentEncode(realFileName);
-
-        String contentDispositionValue = "attachment; filename=" +
-                percentEncodedFileName +
-                ";" +
-                "filename*=" +
-                "utf-8''" +
-                percentEncodedFileName;
-
-        response.addHeader("Access-Control-Expose-Headers", "Content-Disposition,download-filename");
-        response.setHeader("Content-disposition", contentDispositionValue);
-        response.setHeader("download-filename", percentEncodedFileName);
-    }
-
-    /**
-     * 百分号编码工具方法
-     *
-     * @param s 需要百分号编码的字符串
-     * @return 百分号编码后的字符串
-     */
-    public static String percentEncode(String s) throws UnsupportedEncodingException {
-        String encode = URLEncoder.encode(s, StandardCharsets.UTF_8);
-        return encode.replaceAll("\\+", "%20");
     }
 
     /**

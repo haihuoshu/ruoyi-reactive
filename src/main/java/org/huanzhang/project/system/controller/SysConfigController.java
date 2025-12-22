@@ -2,7 +2,6 @@ package org.huanzhang.project.system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.huanzhang.common.utils.poi.ExcelUtil;
@@ -17,6 +16,7 @@ import org.huanzhang.project.system.query.SysConfigQuery;
 import org.huanzhang.project.system.service.SysConfigService;
 import org.huanzhang.project.system.vo.SysConfigVO;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -48,7 +48,7 @@ public class SysConfigController extends BaseController {
     @Log(title = "配置管理", businessType = BusinessType.EXPORT)
     @PreAuthorize("hasAuthority('system:config:export')")
     @PostMapping("/export")
-    public void export(HttpServletResponse response, SysConfigQuery query) {
+    public void export(ServerHttpResponse response, SysConfigQuery query) {
         sysConfigService.selectConfigList(query)
                 .collectList()
                 .subscribe(list -> {
