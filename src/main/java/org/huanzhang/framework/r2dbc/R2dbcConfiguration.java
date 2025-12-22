@@ -7,14 +7,13 @@ import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.r2dbc.connection.R2dbcTransactionManager;
-import reactor.core.publisher.Mono;
 
 @Configuration
 public class R2dbcConfiguration {
 
     @Bean
     public R2DBCConnectionProvider provider(ConnectionFactory connectionFactory) {
-        return () -> Mono.from(connectionFactory.create());
+        return R2DBCConnectionProvider.from(connectionFactory);
     }
 
     @Bean

@@ -14,6 +14,7 @@ import org.huanzhang.project.system.query.SysConfigQuery;
 import org.huanzhang.project.system.repository.SysConfigRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +29,7 @@ import java.util.List;
  * @version 2025-12-08
  */
 @Repository
+@Transactional
 @RequiredArgsConstructor
 public class SysConfigRepositoryImpl implements SysConfigRepository {
 
