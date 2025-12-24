@@ -172,6 +172,20 @@
             <version>4.0.0</version>
         </dependency>
 
+        <!-- 分布式ID生成器 -->
+        <dependency>
+            <groupId>com.github.yitter</groupId>
+            <artifactId>yitter-idgenerator</artifactId>
+            <version>1.0.6</version>
+        </dependency>
+
+        <!-- Excel处理工具 -->
+        <dependency>
+            <groupId>cn.idev.excel</groupId>
+            <artifactId>fastexcel</artifactId>
+            <version>1.3.0</version>
+        </dependency>
+
     </dependencies>
 
     <repositories>
@@ -240,6 +254,7 @@
                         <customType>com.querydsl.sql.types.LocalDateTimeType</customType>
                         <customType>com.querydsl.sql.types.LocalDateType</customType>
                     </customTypes>
+                    <sourceFolder/>
                 </configuration>
                 <dependencies>
                     <dependency>

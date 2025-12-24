@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.huanzhang.common.utils.poi.ExcelUtil;
+import org.huanzhang.common.utils.excel.ExcelUtils;
 import org.huanzhang.framework.aspectj.lang.annotation.Log;
 import org.huanzhang.framework.aspectj.lang.enums.BusinessType;
 import org.huanzhang.framework.web.controller.BaseController;
@@ -41,20 +41,17 @@ public class SysConfigController extends BaseController {
 
         Mono<Long> count = sysConfigService.selectConfigCount(query);
 
-        return Mono.zip(list, count).map(t -> PageResponse.getInstance(t.getT1(), t.getT2()));
+        return Mono.zip(list, count).map(tuple -> PageResponse.getInstance(tuple.getT1(), tuple.getT2()));
     }
 
     @Operation(summary = "根据条件导出配置列表")
     @Log(title = "配置管理", businessType = BusinessType.EXPORT)
     @PreAuthorize("hasAuthority('system:config:export')")
     @PostMapping("/export")
-    public void export(ServerHttpResponse response, SysConfigQuery query) {
-        sysConfigService.selectConfigList(query)
-                .collectList()
-                .subscribe(list -> {
-                    ExcelUtil<SysConfigVO> util = new ExcelUtil<>(SysConfigVO.class);
-                    util.exportExcel(response, list, "参数数据");
-                });
+    public Mono<Void> export(ServerHttpResponse response, @ParameterObject SysConfigQuery query) {
+        Mono<List<SysConfigVO>> list = sysConfigService.selectConfigList(query).collectList();
+
+        return list.flatMap(data -> ExcelUtils.export(response, SysConfigVO.class, data, "配置管理"));
     }
 
     @Operation(summary = "根据配置ID查询详细信息")

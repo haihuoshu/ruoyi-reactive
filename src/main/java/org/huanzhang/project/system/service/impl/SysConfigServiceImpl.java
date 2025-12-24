@@ -6,6 +6,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.huanzhang.common.constant.CacheConstants;
 import org.huanzhang.common.constant.UserConstants;
 import org.huanzhang.common.exception.ServiceException;
+import org.huanzhang.common.utils.IdgenUtils;
 import org.huanzhang.framework.redis.ReactiveRedisUtils;
 import org.huanzhang.project.system.converter.SysConfigMapper;
 import org.huanzhang.project.system.dto.SysConfigInsertDTO;
@@ -99,6 +100,7 @@ public class SysConfigServiceImpl implements SysConfigService {
     @Override
     public Mono<Void> insertConfig(SysConfigInsertDTO dto) {
         SysConfig entity = sysConfigMapper.toEntity(dto);
+        entity.setConfigId(IdgenUtils.nextId());
         entity.setConfigType(UserConstants.NO);
 
         return this.checkConfigKeyExists(entity)
